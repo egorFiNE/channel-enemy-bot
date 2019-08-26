@@ -14,14 +14,55 @@ const detectLanguage = new DetectLanguage({
 	ssl: false
 });
 
-// [{"language":"zh","isReliable":false,"confidence":0.01}]
-	// detectLanguage.detect(phrase, function(error, result) {
-  //   console.log(JSON.stringify(result));
-	// });
+function isAsian(name) {
+	return new Promise((resolve, reject) => {
+		detectLanguage.detect(name, (err, result) => {
+			if (err) {
+				reject(err);
+				return;
+			}
 
-bot.on('new_chat_members', msg => {
+			if (!result || result.length == 0) {
+				reject(new Error("No idea"));
+				return;
+			}
+
+			const language = (result[0].language || '').toLowerCase();
+			if (!language) {
+				reject(new Error("no language"));
+				return;
+			}
+
+			resolve(
+				language.startsWith('zh') || language.startsWith('za') ||
+				language.startsWith('vi') || language.startsWith('ko') ||
+				language.startsWith('ja')
+			);
+		});
+	});
+}
+
+bot.on('new_chat_members', async msg => {
+	for (const member of msg.new_chat_members) {
+		if (member.is_bot) {
+			continue;
+		}
+
+		let name = member.first_name;
+		if (member.last_name) {
+			name += ' ' + member.last_name;
+		}
+
+		try {
+			const shouldBan = await isAsian(name);
+			member.shouldBan = shouldBan;
+		} catch (e) {
+			console.log(e);
+			member._error = e.toString();
+		}
+	}
+
 	fs.appendFileSync('chat.json', JSON.stringify(msg) + "\n");
-	console.log(msg);
 });
 
 /*

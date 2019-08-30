@@ -14,6 +14,11 @@ const detectLanguage = new DetectLanguage({
 	ssl: false
 });
 
+const WHITE_PEOPLE = [
+	16292769, // Ira Magnuna
+	2840920 // kvazimbek
+];
+
 function isAsian(name) {
 	return new Promise((resolve, reject) => {
 		detectLanguage.detect(name, (err, result) => {
@@ -42,7 +47,32 @@ function isAsian(name) {
 	});
 }
 
+async function banMembers(chatId, members) {
+	const date = Date.now();
+	const logStructure = JSON.stringify({ date, chatId, members });
+	fs.appendFileSync('banList.json', logStructure + "\n");
+
+	for (const member of members) {
+		try {
+			const result = await bot.kickChatMember(chatId, member.id);
+			console.log(result);
+		} catch (e) {
+			console.log(e);
+		}
+	}
+}
+
+/**********************************/
+
+bot.on('message', msg => {
+	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
+});
+
 bot.on('new_chat_members', async msg => {
+	fs.appendFileSync('newMembers.json', JSON.stringify(msg) + "\n");
+
+	const toBeBanned = [];
+
 	for (const member of msg.new_chat_members) {
 		if (member.is_bot) {
 			continue;
@@ -60,9 +90,21 @@ bot.on('new_chat_members', async msg => {
 			console.log(e);
 			member._error = e.toString();
 		}
+
+		if (WHITE_PEOPLE.includes(member.id)) {
+			member.shouldBan = false;
+		}
+
+		if (member.shouldBan) {
+			toBeBanned.push(member);
+		}
 	}
 
-	fs.appendFileSync('chat.json', JSON.stringify(msg) + "\n");
+	if (toBeBanned.length == 0) {
+		return;
+	}
+
+	banMembers(msg.chat.id, toBeBanned);
 });
 
 /*

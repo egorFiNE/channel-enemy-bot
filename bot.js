@@ -19,6 +19,8 @@ const WHITE_PEOPLE = [
 	2840920 // kvazimbek
 ];
 
+const NOTIFY_CHAT_ID = 2840920; // kvazimbek
+
 function isAsian(name) {
 	return new Promise((resolve, reject) => {
 		detectLanguage.detect(name, (err, result) => {
@@ -60,6 +62,8 @@ async function banMembers(chatId, members) {
 			console.log(e);
 		}
 	}
+
+	bot.sendMessage(NOTIFY_CHAT_ID, JSON.stringify(members, null, "    "));
 }
 
 /**********************************/

@@ -101,7 +101,9 @@ bot.on('message', msg => {
 
 	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
 
-	bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+	if (msg.text == '/start') {
+		bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+	}
 });
 
 bot.on('new_chat_members', async msg => {

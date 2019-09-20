@@ -1,5 +1,7 @@
 'use strict';
 
+/* eslint-disable camelcase */
+
 // https://t.me/joinchat/ACtZWBdMm6xkL0mEVLgUCg
 
 const config = require('./config');
@@ -14,9 +16,14 @@ const detectLanguage = new DetectLanguage({
 	ssl: false
 });
 
+const WELCOME_TIMEOUT_MS = 2000;
+const NOT_WELCOME_MESSAGE = "Hi. I'm a private bot managing a single Telegram channel. There is nothing I can do for you, so goodbye and have a nice day :-)\n\n" +
+	"Привет! Я частный бот, работающий только на одном телеграм канале, поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)";
+
 const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
-	2840920 // kvazimbek
+	2840920, // kvazimbek
+	128480671 // Artem Svitelskyi
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
@@ -66,26 +73,48 @@ async function banMembers(chatId, members) {
 	bot.sendMessage(NOTIFY_CHAT_ID, JSON.stringify(members, null, "    "));
 }
 
+function welcomeMembers(chatId, members) {
+	const promises = [];
+	for (const member of members) {
+		const mention = renderFullname(member);
+		const message = `Привет, [${mention}](tg://user?id=${member.id}), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.`;
+		promises.push(bot.sendMessage(chatId, message, { parse_mode: 'Markdown' }));
+	}
+	return Promise.all(promises);
+}
+
+function renderFullname({ first_name, last_name }) {
+	let name = (first_name || '').trim();
+	if (last_name) {
+		name += ' ' + last_name.trim();
+	}
+	return name;
+}
+
 /**********************************/
 
 bot.on('message', msg => {
+	if (msg.text == '/say_hello') {
+		welcomeMembers(msg.chat.id, [msg.from]);
+		return;
+	}
+
 	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
+
+	bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 });
 
 bot.on('new_chat_members', async msg => {
 	fs.appendFileSync('newMembers.json', JSON.stringify(msg) + "\n");
 
-	const toBeBanned = [];
+	const toBeBanned = [], toWelcome = [];
 
 	for (const member of msg.new_chat_members) {
 		if (member.is_bot) {
 			continue;
 		}
 
-		let name = member.first_name;
-		if (member.last_name) {
-			name += ' ' + member.last_name;
-		}
+		const name = renderFullname(member);
 
 		try {
 			const shouldBan = await isAsian(name);
@@ -101,14 +130,19 @@ bot.on('new_chat_members', async msg => {
 
 		if (member.shouldBan) {
 			toBeBanned.push(member);
+		} else {
+			toWelcome.push(member);
 		}
 	}
 
-	if (toBeBanned.length == 0) {
-		return;
+	if (toBeBanned.length > 0) {
+		banMembers(msg.chat.id, toBeBanned);
 	}
 
-	banMembers(msg.chat.id, toBeBanned);
+	if (toWelcome.length > 0) {
+		// let them see something
+		setTimeout(() => welcomeMembers(msg.chat.id, toWelcome), WELCOME_TIMEOUT_MS);
+	}
 });
 
 /*

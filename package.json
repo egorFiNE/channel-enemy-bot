@@ -5,6 +5,6 @@
  "license": "MIT",
  "dependencies": {
   "detectlanguage": "^1.2.2",
-  "node-telegram-bot-api": "^0.30.0"
+  "node-telegram-bot-api": "^0.40.0"
  }
 }

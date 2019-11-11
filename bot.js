@@ -138,7 +138,10 @@ bot.on('new_chat_members', async msg => {
 	}
 
 	if (toBeBanned.length > 0) {
-		banMembers(msg.chat.id, toBeBanned);
+		await banMembers(msg.chat.id, toBeBanned);
+		if (toBeBanned.length == 1) {
+			bot.deleteMessage(msg.chat.id, msg.message_id);
+		}
 	}
 
 	if (toWelcome.length > 0) {

@@ -23,7 +23,8 @@ const NOT_WELCOME_MESSAGE = "Hi. I'm a private bot managing a single Telegram ch
 const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
 	2840920, // kvazimbek
-	128480671 // Artem Svitelskyi
+	128480671, // Artem Svitelskyi
+	173231552 // Vova
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek

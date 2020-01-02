@@ -71,7 +71,20 @@ async function banMembers(chatId, members) {
 		}
 	}
 
-	bot.sendMessage(NOTIFY_CHAT_ID, JSON.stringify(members, null, "    "));
+	const notificationMembers = members.map(member => {
+		const result = [ member.id ];
+		if (member.username) {
+			result.push('@' + member.username);
+		}
+		result.push(renderFullname(member));
+		return result.join(' ');
+	});
+
+	const notificationString = notificationMembers.join("\n\n") + "\n";
+
+	bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
+		disable_notification: true
+	});
 }
 
 function welcomeMembers(chatId, members) {

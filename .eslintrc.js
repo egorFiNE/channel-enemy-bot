@@ -1,11 +1,9 @@
 module.exports = {
-	"parserOptions": {
-		"ecmaVersion": 8
-	},
+	  parser: "babel-eslint",
 
     "env": {
-        "es6": true,
-        "node": true
+        "node": true,
+			"es2020": true
     },
     "extends": "eslint:recommended",
     "rules": {
@@ -96,7 +94,7 @@ module.exports = {
         ],
         "lines-around-comment": "off",
         "lines-around-directive": "error",
-        "max-depth": "error",
+        "max-depth": [ "error", 5 ],
         "max-len": "off",
         "max-lines": "off",
         "max-nested-callbacks": "error",

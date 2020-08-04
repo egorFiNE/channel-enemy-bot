@@ -5,10 +5,10 @@
  "license": "MIT",
  "dependencies": {
   "detectlanguage": "^1.2.2",
-  "node-telegram-bot-api": "^0.40.0"
+  "node-telegram-bot-api": "^0.50.0"
  },
  "devDependencies": {
   "babel-eslint": "^10.0.3",
-  "eslint": "^6.8.0"
+  "eslint": "^7.6.0"
  }
 }

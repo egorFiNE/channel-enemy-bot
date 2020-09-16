@@ -94,8 +94,12 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 	let template = null;
 	if (chatId == '-1001203773023') {
 		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.';
-	} else {
+	} else if (chatId == '-1001337527238') {
 		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
+	}
+
+	if (!template) {
+		return null;
 	}
 
 	const mention = renderFullname(member);
@@ -111,10 +115,16 @@ function welcomeMembers(chatId, members) {
 	const promises = [];
 	for (const member of members) {
 		const message = createWelcomeMessageByChatId({ chatId, member });
+		if (!message) {
+			console.log("No message to reply for chat %d", chatId);
+			continue;
+		}
+
 		// const mention = renderFullname(member);
 		// const message = `Привет, [${mention}](tg://user?id=${member.id}), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.`;
 		promises.push(bot.sendMessage(chatId, message, { parse_mode: 'Markdown' }));
 	}
+
 	return Promise.all(promises);
 }
 

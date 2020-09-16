@@ -1,5 +1,3 @@
-'use strict';
-
 /* eslint-disable camelcase */
 
 // https://t.me/joinchat/ACtZWBdMm6xkL0mEVLgUCg
@@ -24,7 +22,8 @@ const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
 	2840920, // kvazimbek
 	128480671, // Artem Svitelskyi
-	173231552 // Vova
+	173231552, // Vova
+	91153540 // Dmytro Homonuik
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
@@ -87,11 +86,33 @@ async function banMembers(chatId, members) {
 	});
 }
 
+function renderWelcomeMessage({ template, memberId, mention }) {
+	return template.replace(/%MEMBER_ID%/g, memberId).replace(/%MENTION%/g, mention);
+}
+
+function createWelcomeMessageByChatId({ chatId, member }) {
+	let template = null;
+	if (chatId == '-1001203773023') {
+		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.';
+	} else {
+		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
+	}
+
+	const mention = renderFullname(member);
+
+	return renderWelcomeMessage({
+		template,
+		memberId: member.id,
+		mention
+	});
+}
+
 function welcomeMembers(chatId, members) {
 	const promises = [];
 	for (const member of members) {
-		const mention = renderFullname(member);
-		const message = `Привет, [${mention}](tg://user?id=${member.id}), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.`;
+		const message = createWelcomeMessageByChatId({ chatId, member });
+		// const mention = renderFullname(member);
+		// const message = `Привет, [${mention}](tg://user?id=${member.id}), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.`;
 		promises.push(bot.sendMessage(chatId, message, { parse_mode: 'Markdown' }));
 	}
 	return Promise.all(promises);

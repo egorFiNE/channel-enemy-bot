@@ -5,7 +5,8 @@
  "license": "MIT",
  "dependencies": {
   "detectlanguage": "^1.2.2",
-  "node-telegram-bot-api": "^0.50.0"
+  "node-telegram-bot-api": "^0.50.0",
+  "sqlite3": "^5.0.0"
  },
  "devDependencies": {
   "babel-eslint": "^10.0.3",

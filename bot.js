@@ -167,7 +167,7 @@ function touchNewMembers(chatId, members) {
 
 db = new sqlite3.Database('./stats.sqlite3');
 
-createDb();
+// createDb();
 
 bot.on('message', msg => {
 	if (msg.text == '/say_hello') {

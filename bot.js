@@ -117,10 +117,10 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 	});
 }
 
-function welcomeMembers(chatId, members) {
+function welcomeMembers(chatId, members, isPrivate = false) {
 	const promises = [];
 	for (const member of members) {
-		const message = createWelcomeMessageByChatId({ chatId, member });
+    let message = isPrivate ? "I'm in" : createWelcomeMessageByChatId({ chatId, member });
 		if (!message) {
 			console.log("No message to reply for chat %d", chatId);
 			continue;
@@ -143,11 +143,12 @@ function renderFullname({ first_name, last_name }) {
 function createDb() {
 	db.run(`
 	CREATE TABLE IF NOT EXISTS Stats (
-		chatId VARCHAR(32) NOT NULL PRIMARY KEY,
-		memberId VARCHAR(32) NOT NULL PRIMARY KEY,
+		chatId VARCHAR(32) NOT NULL,
+		memberId VARCHAR(32) NOT NULL,
 		joinedAt INTEGER NULL,
 		firstSeenAt INTEGER NOT NULL,
-		lastSeenAt INTEGER NOT NULL
+		lastSeenAt INTEGER NOT NULL,
+		PRIMARY KEY(chatId, memberId)
 	)`);
 }
 
@@ -222,6 +223,6 @@ bot.on('new_chat_members', async msg => {
 	if (toWelcome.length > 0) {
 		// let them see something
 		setTimeout(() => welcomeMembers(msg.chat.id, toWelcome), WELCOME_TIMEOUT_MS);
-		touchNewMembers(msg.chat.id, toWelcome);
+		// touchNewMembers(msg.chat.id, toWelcome);
 	}
 });

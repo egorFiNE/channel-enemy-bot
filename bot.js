@@ -171,7 +171,7 @@ db = new sqlite3.Database('./stats.sqlite3');
 
 bot.on('message', msg => {
 	if (msg.text == '/say_hello') {
-		welcomeMembers(msg.chat.id, [msg.from]);
+		welcomeMembers(msg.chat.id, [msg.from], true);
 		return;
 	}
 

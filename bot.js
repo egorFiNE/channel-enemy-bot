@@ -196,10 +196,13 @@ bot.on('message', msg => {
 			chatName = 'Kiev';
 		}
 
-		const notificationString = chatName + ' ' + msg.text;
-		bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
-			disable_notification: true
-		});
+		const notificationString = [
+			chatName,
+			`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+			msg.text
+		].join(' ');
+
+		bot.sendMessage(NOTIFY_CHAT_ID, notificationString);
 	}
 });
 

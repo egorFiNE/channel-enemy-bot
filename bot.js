@@ -202,7 +202,7 @@ bot.on('message', msg => {
 			msg.text
 		].join(' ');
 
-		bot.sendMessage(NOTIFY_CHAT_ID, notificationString);
+		bot.sendMessage(NOTIFY_CHAT_ID, notificationString, { parse_mode: 'Markdown' });
 	}
 });
 

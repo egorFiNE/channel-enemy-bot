@@ -124,7 +124,7 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 function welcomeMembers(chatId, members, isPrivate = false) {
 	const promises = [];
 	for (const member of members) {
-    let message = isPrivate ? "I'm in" : createWelcomeMessageByChatId({ chatId, member });
+    const message = isPrivate ? "I'm in" : createWelcomeMessageByChatId({ chatId, member });
 		if (!message) {
 			console.log("No message to reply for chat %d", chatId);
 			continue;

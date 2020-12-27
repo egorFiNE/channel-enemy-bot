@@ -63,6 +63,10 @@ function isAsian(name) {
 }
 
 async function banMembers(chatId, members) {
+	if (chatId != CHAT_ID_ODESSA && chatId !== CHAT_ID_UA) {
+		return; // only perform ban in those two
+	}
+
 	const date = Date.now();
 	const logStructure = JSON.stringify({ date, chatId, members });
 	fs.appendFileSync('banList.json', logStructure + "\n");
@@ -170,15 +174,32 @@ db = new sqlite3.Database('./stats.sqlite3');
 // createDb();
 
 bot.on('message', msg => {
+	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
+
 	if (msg.text == '/say_hello') {
 		welcomeMembers(msg.chat.id, [msg.from], true);
 		return;
 	}
 
-	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
-
 	if (msg.text == '/start') {
 		bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (msg.text.indexOf('http://') >= 0 || msg.text.indexOf('https://') >= 0) {
+		let chatName = "?";
+		if (msg.chat.id == CHAT_ID_UA) {
+			chatName = "@miniclubua";
+		} else if (msg.chat.id == CHAT_ID_ODESSA) {
+			chatName = '@miniclubodesa';
+		} else {
+			chatName = 'Kiev';
+		}
+
+		const notificationString = chatName + ' ' + msg.text;
+		bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
+			disable_notification: true
+		});
 	}
 });
 

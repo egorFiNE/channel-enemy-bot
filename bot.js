@@ -73,8 +73,7 @@ async function banMembers(chatId, members) {
 
 	for (const member of members) {
 		try {
-			const result = await bot.kickChatMember(chatId, member.id);
-			console.log(result);
+			await bot.kickChatMember(chatId, member.id);
 		} catch (e) {
 			console.log(e);
 		}

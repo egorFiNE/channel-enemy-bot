@@ -175,17 +175,19 @@ db = new sqlite3.Database('./stats.sqlite3');
 bot.on('message', msg => {
 	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
 
-	if (msg.text == '/say_hello') {
+	const text = msg.text || '';
+
+	if (text == '/say_hello') {
 		welcomeMembers(msg.chat.id, [msg.from], true);
 		return;
 	}
 
-	if (msg.text == '/start') {
+	if (text == '/start') {
 		bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 		return;
 	}
 
-	if (msg.text.indexOf('http://') >= 0 || msg.text.indexOf('https://') >= 0) {
+	if (text.indexOf('http://') >= 0 || text.indexOf('https://') >= 0) {
 		let chatName = "?";
 		if (msg.chat.id == CHAT_ID_UA) {
 			chatName = "@miniclubua";
@@ -198,7 +200,7 @@ bot.on('message', msg => {
 		const notificationString = [
 			chatName,
 			`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
-			msg.text
+			text
 		].join(' ');
 
 		bot.sendMessage(NOTIFY_CHAT_ID, notificationString, { parse_mode: 'Markdown' });

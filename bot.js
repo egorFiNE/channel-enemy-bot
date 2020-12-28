@@ -251,3 +251,8 @@ bot.on('new_chat_members', async msg => {
 		// touchNewMembers(msg.chat.id, toWelcome);
 	}
 });
+
+bot.on('polling_error', (error) => {
+  console.log('polling_error');
+  console.log(error);
+});

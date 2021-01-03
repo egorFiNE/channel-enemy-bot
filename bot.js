@@ -19,6 +19,7 @@ const detectLanguage = new DetectLanguage({
 
 const CHAT_ID_UA = '-1001203773023';
 const CHAT_ID_ODESSA = '-1001337527238';
+const CHAT_ID_KIEV = '-1001422187907';
 
 const WELCOME_TIMEOUT_MS = 2000;
 const NOT_WELCOME_MESSAGE = "Hi. I'm a private bot managing a count of specific Telegram channel. There is nothing I can do for you, so goodbye and have a nice day :-)\n\n" +
@@ -104,7 +105,8 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 	if (chatId == CHAT_ID_UA) {
 		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.';
 	} else if (chatId == CHAT_ID_ODESSA) {
-		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
+		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, ' +
+			'и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
 	}
 
 	if (!template) {
@@ -166,6 +168,40 @@ function touchNewMembers(chatId, members) {
 	}
 }
 
+function chatNameByID(chatId) {
+	if (chatId == CHAT_ID_UA) {
+		return "@miniclubua";
+	} else if (chatId == CHAT_ID_ODESSA) {
+		return '@miniclubodesa';
+	} else if (chatId == CHAT_ID_KIEV) {
+		return 'Kiev';
+	}
+	return '??';
+}
+
+function possiblyHandleUrl(msg) {
+	if (!msg.entities) {
+		return false;
+	}
+
+	const shouldNotify = msg.entities.filter(entity => entity.type == 'url').length > 0;
+	if (!shouldNotify) {
+		return false;
+	}
+
+	const chatName = chatNameByID(msg.chat.id);
+
+	const notificationString = [
+		chatName,
+		`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+		msg.text
+	].join(' ');
+
+	bot.sendMessage(NOTIFY_CHAT_ID, notificationString, { parse_mode: 'Markdown' });
+
+	return true;
+}
+
 /**********************************/
 
 db = new sqlite3.Database('./stats.sqlite3');
@@ -187,24 +223,7 @@ bot.on('message', msg => {
 		return;
 	}
 
-	if (text.indexOf('http://') >= 0 || text.indexOf('https://') >= 0) {
-		let chatName = "?";
-		if (msg.chat.id == CHAT_ID_UA) {
-			chatName = "@miniclubua";
-		} else if (msg.chat.id == CHAT_ID_ODESSA) {
-			chatName = '@miniclubodesa';
-		} else {
-			chatName = 'Kiev';
-		}
-
-		const notificationString = [
-			chatName,
-			`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
-			text
-		].join(' ');
-
-		bot.sendMessage(NOTIFY_CHAT_ID, notificationString, { parse_mode: 'Markdown' });
-	}
+	possiblyHandleUrl(msg);
 });
 
 bot.on('new_chat_members', async msg => {
@@ -252,7 +271,7 @@ bot.on('new_chat_members', async msg => {
 	}
 });
 
-bot.on('polling_error', (error) => {
+bot.on('polling_error', error => {
   console.log('polling_error');
   console.log(error);
 });

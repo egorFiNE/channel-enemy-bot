@@ -20,6 +20,7 @@ const detectLanguage = new DetectLanguage({
 const CHAT_ID_UA = '-1001203773023';
 const CHAT_ID_ODESSA = '-1001337527238';
 const CHAT_ID_KIEV = '-1001422187907';
+const CHAT_ID_VW = '-1001257154538';
 
 const WELCOME_TIMEOUT_MS = 2000;
 const NOT_WELCOME_MESSAGE = "Hi. I'm a private bot managing a count of specific Telegram channel. There is nothing I can do for you, so goodbye and have a nice day :-)\n\n" +
@@ -104,9 +105,14 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 	let template = null;
 	if (chatId == CHAT_ID_UA) {
 		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.';
+
 	} else if (chatId == CHAT_ID_ODESSA) {
 		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, ' +
 			'и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
+
+	} else if (chatId == CHAT_ID_VW) {
+		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%). Рады приветствовать на канале клуба любителей Фольксваген Битла. ' +
+			'Давай знакомиться! Как тебя зовут, из какого ты города и какой у тебя Жук?';
 	}
 
 	if (!template) {
@@ -171,11 +177,17 @@ function touchNewMembers(chatId, members) {
 function chatNameByID(chatId) {
 	if (chatId == CHAT_ID_UA) {
 		return "@miniclubua";
+
 	} else if (chatId == CHAT_ID_ODESSA) {
 		return '@miniclubodesa';
+
 	} else if (chatId == CHAT_ID_KIEV) {
 		return 'Kiev';
+
+	} else if (chatId == CHAT_ID_VW) {
+		return '@BEETLE_CLUB_UKRAINE';
 	}
+
 	return '??';
 }
 

@@ -192,6 +192,8 @@ function chatNameByID(chatId) {
 }
 
 function possiblyHandleUrl(msg) {
+	return false;
+
 	if (!msg.entities) {
 		return false;
 	}

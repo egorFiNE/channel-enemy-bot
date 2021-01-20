@@ -8,11 +8,11 @@ const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const DetectLanguage = require('detectlanguage');
 const { Sequelize, DataTypes, Model } = require('sequelize');
-const path = require('url');
+const path = require('path');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: path.join(__dirname, 'stats.sqlite')
+  storage: path.join(__dirname, 'stats.sqlite3')
 });
 
 class Stats extends Model {}
@@ -65,15 +65,12 @@ const WHITE_PEOPLE = [
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
 
-function touch(chatId, memberId) {
+function touch({ chatId, memberId }) {
 	return sequelize.models.Stats.upsert(
 		{
 			chatId,
 			memberId,
 			lastSeen: new Date()
-		},
-		{
-			fields: [ 'lastSeen' ]
 		}
 	);
 }

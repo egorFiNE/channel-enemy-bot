@@ -11,6 +11,7 @@ const { Sequelize, DataTypes, Model } = require('sequelize');
 const path = require('path');
 
 const sequelize = new Sequelize({
+	logging: false,
   dialect: 'sqlite',
   storage: path.join(__dirname, 'stats.sqlite3')
 });

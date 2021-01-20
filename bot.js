@@ -5,11 +5,39 @@
 const config = require('./config');
 
 const fs = require('fs');
-const sqlite3 = require('sqlite3');
 const TelegramBot = require('node-telegram-bot-api');
 const DetectLanguage = require('detectlanguage');
+const { Sequelize, DataTypes, Model } = require('sequelize');
+const path = require('url');
 
-let db = null;
+const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: path.join(__dirname, 'stats.sqlite')
+});
+
+class Stats extends Model {}
+Stats.init({
+	chatId: {
+		type: DataTypes.STRING,
+		allowNull: false,
+		primaryKey: true
+	},
+	memberId: {
+		type: DataTypes.STRING,
+		allowNull: false,
+		primaryKey: true
+	},
+	lastSeen: {
+		type: DataTypes.DATE,
+		allowNull: false
+	}
+}, {
+	sequelize,
+	timestamps: false,
+	modelName: 'Stats'
+});
+
+sequelize.sync();
 
 const bot = new TelegramBot(config.TELEGRAM_TOKEN, { polling: true });
 const detectLanguage = new DetectLanguage({
@@ -17,6 +45,7 @@ const detectLanguage = new DetectLanguage({
 	ssl: false
 });
 
+const WATCH_URLS = false;
 const CHAT_ID_UA = '-1001203773023';
 const CHAT_ID_ODESSA = '-1001337527238';
 const CHAT_ID_KIEV = '-1001422187907';
@@ -35,6 +64,19 @@ const WHITE_PEOPLE = [
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
+
+function touch(chatId, memberId) {
+	return sequelize.models.Stats.upsert(
+		{
+			chatId,
+			memberId,
+			lastSeen: new Date()
+		},
+		{
+			fields: [ 'lastSeen' ]
+		}
+	);
+}
 
 function isAsian(name) {
 	return new Promise((resolve, reject) => {
@@ -151,29 +193,6 @@ function renderFullname({ first_name, last_name }) {
 	return name;
 }
 
-function createDb() {
-	db.run(`
-	CREATE TABLE IF NOT EXISTS Stats (
-		chatId VARCHAR(32) NOT NULL,
-		memberId VARCHAR(32) NOT NULL,
-		joinedAt INTEGER NULL,
-		firstSeenAt INTEGER NOT NULL,
-		lastSeenAt INTEGER NOT NULL,
-		PRIMARY KEY(chatId, memberId)
-	)`);
-}
-
-function touchNewMembers(chatId, members) {
-	const now = Math.floor(Date.now() / 1000);
-
-	for (const member of members) {
-		db.run(
-			'INSERT IGNORE INTO Stats (chatId, memberId, joinedAt) VALUES (?, ?, ?)',
-			[ chatId, member.id, now ]
-		);
-	}
-}
-
 function chatNameByID(chatId) {
 	if (chatId == CHAT_ID_UA) {
 		return "@miniclubua";
@@ -192,8 +211,6 @@ function chatNameByID(chatId) {
 }
 
 function possiblyHandleUrl(msg) {
-	return false;
-
 	if (!msg.entities) {
 		return false;
 	}
@@ -218,9 +235,6 @@ function possiblyHandleUrl(msg) {
 
 /**********************************/
 
-db = new sqlite3.Database('./stats.sqlite3');
-
-// createDb();
 
 bot.on('message', msg => {
 	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
@@ -237,7 +251,16 @@ bot.on('message', msg => {
 		return;
 	}
 
-	possiblyHandleUrl(msg);
+	if (WATCH_URLS) {
+		possiblyHandleUrl(msg);
+	}
+
+	if (msg.chat?.type == 'supergroup') {
+		touch({
+			chatId: String(msg.chat.id),
+			memberId: String(msg.from.id)
+		});
+	}
 });
 
 bot.on('new_chat_members', async msg => {
@@ -281,7 +304,6 @@ bot.on('new_chat_members', async msg => {
 	if (toWelcome.length > 0) {
 		// let them see something
 		setTimeout(() => welcomeMembers(msg.chat.id, toWelcome), WELCOME_TIMEOUT_MS);
-		// touchNewMembers(msg.chat.id, toWelcome);
 	}
 });
 

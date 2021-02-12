@@ -47,14 +47,46 @@ const detectLanguage = new DetectLanguage({
 });
 
 const WATCH_URLS = false;
-const CHAT_ID_UA = '-1001203773023';
-const CHAT_ID_ODESSA = '-1001337527238';
-const CHAT_ID_KIEV = '-1001422187907';
-const CHAT_ID_VW = '-1001257154538';
+
+const chatNameById = {
+	'-1001203773023': '@miniclubua',
+	'-1001337527238': '@miniclubodesa',
+	'-1001422187907': 'kiev',
+	'-1001257154538': '@BEETLE_CLUB_UKRAINE'
+};
+
+const enableBansByChatId = {
+	'-1001337527238': true,
+	'-1001203773023': true
+};
+
+const adminsIdsByChatId = {
+	'-1001203773023': [ '2840920', '16292769', '128480671' ],
+	'-1001337527238': [ '2840920' ]
+};
+
+let templateByChatId = {};
 
 const WELCOME_TIMEOUT_MS = 2000;
-const NOT_WELCOME_MESSAGE = "Hi. I'm a private bot managing a count of specific Telegram channel. There is nothing I can do for you, so goodbye and have a nice day :-)\n\n" +
-	"Привет! Я частный бот, работающий только на парочке секретных телеграм каналов, поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)";
+
+const HELLO_HELP =
+`To see current welcome message for a channel:
+
+\`/hello @channel\`
+
+To change it:
+
+\`/hello @channel blah blah\`
+
+Make sure to put \`%NAME%\` somewhere in the hello message to mention the newcomer.
+`;
+
+const NOT_WELCOME_MESSAGE = [
+	"Hi. I'm a private bot managing a count of specific Telegram channel.",
+	"There is nothing I can do for you, so goodbye and have a nice day :-)\n\n",
+	"Привет! Я частный бот, работающий только на парочке секретных телеграм каналов,",
+	"поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)\n\n"
+].join(" ");
 
 const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
@@ -65,6 +97,27 @@ const WHITE_PEOPLE = [
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
+
+const HELLO_PATH = path.join(__dirname, 'hello.json');
+
+function loadHello() {
+	const helloString = fs.readFileSync(HELLO_PATH).toString();
+	templateByChatId = JSON.parse(helloString); // let it crash in case there's an error
+}
+
+function storeHello() {
+	fs.writeFileSync(HELLO_PATH, JSON.stringify(templateByChatId, null, "\t"));
+}
+
+function chatIdByName(name) {
+	for (const [ chatId, chatName ] of Object.entries(chatNameById)) {
+		if (chatName.toLowerCase() == name.toLowerCase()) {
+			return chatId;
+		}
+	}
+
+	return null;
+}
 
 function touch({ chatId, memberId }) {
 	return sequelize.models.Stats.upsert(
@@ -105,8 +158,8 @@ function isAsian(name) {
 }
 
 async function banMembers(chatId, members) {
-	if (chatId != CHAT_ID_ODESSA && chatId !== CHAT_ID_UA) {
-		return; // only perform ban in those two
+	if (!enableBansByChatId[chatId]) {
+		return;
 	}
 
 	const date = Date.now();
@@ -138,23 +191,14 @@ async function banMembers(chatId, members) {
 }
 
 function renderWelcomeMessage({ template, memberId, mention }) {
-	return template.replace(/%MEMBER_ID%/g, memberId).replace(/%MENTION%/g, mention);
+	return template
+		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
+		.replaceAll('%MEMBER_ID%', memberId)
+		.replaceAll('%MENTION%', mention);
 }
 
 function createWelcomeMessageByChatId({ chatId, member }) {
-	let template = null;
-	if (chatId == CHAT_ID_UA) {
-		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%), MINI Club UA 🇺🇦 приветствует тебя! Расскажи нам что-то о себе и своем автомобиле.';
-
-	} else if (chatId == CHAT_ID_ODESSA) {
-		template = 'Таки да: ви в Одессе, [%MENTION%](tg://user?id=%MEMBER_ID%)! Обратите внимание на закрепленное сообщение, ' +
-			'и расскажите нам все о себе и своем автомобиле. А еще мы таки очень будем рады видеть вас на сходках и покатушках!';
-
-	} else if (chatId == CHAT_ID_VW) {
-		template = 'Привет, [%MENTION%](tg://user?id=%MEMBER_ID%). Рады приветствовать на канале клуба любителей Volkswagen Beetle. Давай знакомиться! ' +
-			'Как тебя зовут, из какого ты города и какой у тебя Жук?';
-	}
-
+	const template = templateByChatId[chatId];
 	if (!template) {
 		return null;
 	}
@@ -168,10 +212,10 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 	});
 }
 
-function welcomeMembers(chatId, members, isPrivate = false) {
+function welcomeMembers(chatId, members) {
 	const promises = [];
 	for (const member of members) {
-    const message = isPrivate ? "I'm in" : createWelcomeMessageByChatId({ chatId, member });
+    const message = createWelcomeMessageByChatId({ chatId, member });
 		if (!message) {
 			console.log("No message to reply for chat %d", chatId);
 			continue;
@@ -191,23 +235,6 @@ function renderFullname({ first_name, last_name }) {
 	return name;
 }
 
-function chatNameByID(chatId) {
-	if (chatId == CHAT_ID_UA) {
-		return "@miniclubua";
-
-	} else if (chatId == CHAT_ID_ODESSA) {
-		return '@miniclubodesa';
-
-	} else if (chatId == CHAT_ID_KIEV) {
-		return 'Kiev';
-
-	} else if (chatId == CHAT_ID_VW) {
-		return '@BEETLE_CLUB_UKRAINE';
-	}
-
-	return '??';
-}
-
 function possiblyHandleUrl(msg) {
 	if (!msg.entities) {
 		return false;
@@ -218,7 +245,7 @@ function possiblyHandleUrl(msg) {
 		return false;
 	}
 
-	const chatName = chatNameByID(msg.chat.id);
+	const chatName = chatNameById[String(msg.chat.id)];
 
 	const notificationString = [
 		chatName,
@@ -231,21 +258,132 @@ function possiblyHandleUrl(msg) {
 	return true;
 }
 
+function authorizeAdmin(fromId, channelChatId) {
+	const admins = adminsIdsByChatId[channelChatId];
+	if (!admins) {
+		return false;
+	}
+
+	return admins.includes(String(fromId));
+}
+
+function processHelloConfigurations({ text, fromId, chatId }) {
+	const s = text.split(/\s+/);
+	if (s.length == 0) { // can't be, but still
+		return;
+	}
+
+	if (s.length == 1) {
+		bot.sendMessage(chatId, HELLO_HELP, { parse_mode: 'Markdown' });
+		return;
+	}
+
+	// s.length > 1
+
+	const channelName = s[1];
+	const channelChatId = chatIdByName(channelName);
+	if (!channelChatId) {
+		bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (!authorizeAdmin(fromId, channelChatId)) {
+		bot.sendMessage(chatId, "You don't have permission to change the hello message for that channel.", { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (s.length == 2) {
+		const template = templateByChatId[channelChatId];
+		if (!template) {
+			bot.sendMessage(chatId, "No hello for that channel", { parse_mode: 'Markdown' });
+			return;
+		}
+
+		bot.sendMessage(chatId, template, { parse_mode: 'Markdown' });
+		return;
+	}
+
+	templateByChatId[channelChatId] = s.slice(2).join(' ');
+	bot.sendMessage(
+		chatId,
+		`Сохранил вот такое приветствие для ${chatNameById[channelChatId]}:\n\n` + templateByChatId[channelChatId],
+		{ parse_mode: 'Markdown' }
+	);
+
+	storeHello();
+}
+
+function processSay({ text, fromId, chatId }) {
+	const s = text.split(/\s+/);
+	if (s.length == 0) { // can't be, but still
+		return;
+	}
+
+	if (s.length == 1) {
+		bot.sendMessage(chatId, "/say @channel text", { parse_mode: 'Markdown' });
+		return;
+	}
+
+	// s.length > 1
+
+	const channelName = s[1];
+	const channelChatId = chatIdByName(channelName);
+	if (!channelChatId) {
+		bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (!authorizeAdmin(fromId, channelChatId)) {
+		bot.sendMessage(chatId, "You don't have permission to say in that channel.", { parse_mode: 'Markdown' });
+		return;
+	}
+
+	bot.sendMessage(
+		channelChatId,
+		s.slice(2).join(' '),
+		{ parse_mode: 'Markdown' }
+	);
+}
+
+function processPrivateMessage(msg) {
+	const text = (msg.text || '').trim();
+	const fromId = String(msg.from.id);
+	const chatId = String(msg.chat.id);
+
+	if (text == '/start') {
+		bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (text.startsWith('/hello')) {
+		processHelloConfigurations({ text, fromId, chatId });
+		return;
+	}
+
+	if (text.startsWith('/say')) {
+		processSay({ text, fromId, chatId });
+		return;
+	}
+
+	if (text == '/ping') {
+		bot.sendMessage(chatId, "Pong!");
+		return;
+	}
+}
+
 /**********************************/
 
+loadHello();
 
 bot.on('message', msg => {
 	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
 
-	const text = msg.text || '';
+	const isPrivate = msg.chat?.type != 'supergroup';
+	const fromId = String(msg.from.id);
+	const chatId = String(msg.chat.id);
 
-	if (text == '/say_hello') {
-		welcomeMembers(msg.chat.id, [msg.from], true);
-		return;
-	}
-
-	if (text == '/start') {
-		bot.sendMessage(msg.chat.id, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+	if (isPrivate) {
+		processPrivateMessage(msg);
 		return;
 	}
 
@@ -253,12 +391,10 @@ bot.on('message', msg => {
 		possiblyHandleUrl(msg);
 	}
 
-	if (msg.chat?.type == 'supergroup') {
-		touch({
-			chatId: String(msg.chat.id),
-			memberId: String(msg.from.id)
-		});
-	}
+	touch({
+		chatId,
+		memberId: fromId
+	});
 });
 
 bot.on('new_chat_members', async msg => {
@@ -301,7 +437,7 @@ bot.on('new_chat_members', async msg => {
 
 	if (toWelcome.length > 0) {
 		// let them see something
-		setTimeout(() => welcomeMembers(msg.chat.id, toWelcome), WELCOME_TIMEOUT_MS);
+		setTimeout(() => welcomeMembers(String(msg.chat.id), toWelcome), WELCOME_TIMEOUT_MS);
 	}
 });
 

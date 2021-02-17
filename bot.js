@@ -428,7 +428,7 @@ function isBitcoinPriceCommand(text) {
 }
 
 function isBitcoinRouletteCommand(text) {
-	return text.startsWith('/') && text.endsWith('_nazzi');
+	return text.startsWith('/roulette') || (text.startsWith('/') && text.endsWith('_nazzi'));
 }
 
 function getRandomBTCPriceDay(days) {

@@ -4,6 +4,8 @@
  "version": "0.0.1",
  "license": "MIT",
  "dependencies": {
+  "axios": "^0.21.1",
+  "dayjs": "^1.10.4",
   "detectlanguage": "^1.2.2",
   "node-telegram-bot-api": "^0.51.0",
   "sequelize": "^6.4.0",

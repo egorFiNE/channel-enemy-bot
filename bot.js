@@ -9,6 +9,48 @@ const TelegramBot = require('node-telegram-bot-api');
 const DetectLanguage = require('detectlanguage');
 const { Sequelize, DataTypes, Model } = require('sequelize');
 const path = require('path');
+const BitcoinPriceHelper = require('./bitcoinPriceHelper');
+
+const dayjs = require('dayjs');
+require('dayjs/locale/ru');
+const relativeTime = require('dayjs/plugin/relativeTime');
+const LocalizedFormat = require('dayjs/plugin/LocalizedFormat');
+dayjs.locale('ru');
+dayjs.extend(relativeTime);
+dayjs.extend(LocalizedFormat);
+
+const bitcoinPriceHelper = new BitcoinPriceHelper();
+
+const roundCurrencyFormatter = new Intl.NumberFormat('en-US', {
+  useGrouping: true
+});
+
+const DESPERATION = [
+	"Да не расстраивайся ты так!",
+	"Но ведь могло бы быть хуже, правда?",
+	"Но мог бы и потерять, так шо хз",
+	"Я бы от этой мысли пошел бы напился в хлам",
+	"Я бы на твоем месте сейчас расплакался",
+	"Я тоже в шоке",
+	"Просто мрак",
+	"Иди кусай локти",
+	"И вот так мимо проходят все возможности в жизни",
+	"Офигеть, да?",
+	"Эх, надо было слушать умных людей",
+	"А ведь еще Уоренн Бафет тебе говорил",
+	"Если бы ты только вложил...",
+	"Что ты сейчас чувствуешь?",
+	"Как дальше жить?",
+	"А теперь прикинь, если бы ты купил биткоин вместо своего Mini",
+	"Да сколько ж можно плакать о потерянных возможностях!",
+	"Рыдай",
+	"А вот один мой друг откупился по три восемьсот",
+	"Прикинь?",
+	"Ужас!",
+	"Подумай об этом",
+	"Думай об этом сегодня... и завтра... и каждый день теперь"
+];
+
 
 const sequelize = new Sequelize({
 	logging: false,
@@ -369,6 +411,84 @@ function processPrivateMessage(msg) {
 		bot.sendMessage(chatId, "Pong!");
 		return;
 	}
+
+	if (isBitcoinPriceCommand(text)) {
+		sendBitcoinPrice(msg);
+		return;
+	}
+
+	if (isBitcoinRouletteCommand(text)) {
+		sendBitcoinRoulette(msg);
+		return;
+	}
+}
+
+function isBitcoinPriceCommand(text) {
+	return text.startsWith('/bitcoin') || text.startsWith('/btc');
+}
+
+function isBitcoinRouletteCommand(text) {
+	return text.startsWith('/') && text.endsWith('_nazzi');
+}
+
+function getRandomBTCPriceDay(days) {
+  return days[Math.floor(Math.random() * days.length)];
+}
+
+function generateRouletteMessage(currentRate, days) {
+  const numberFormat = new Intl.NumberFormat('en-US', {
+    useGrouping: true
+  });
+
+  const randomDay = getRandomBTCPriceDay(days);
+
+  const dateRelativeHr = dayjs(randomDay.date).from(new Date());
+  const dateAbsoluteHr = dayjs(randomDay.date).format('LL').replace(' г.', '');
+
+  const originalAmountUSD = (3 + Math.round(Math.random() * 30)) * 100;
+  const amountBTC = originalAmountUSD / randomDay.usd;
+
+  const currentAmountUSD = amountBTC * currentRate;
+
+  const originalBTCAmountHr = amountBTC.toFixed(4);
+  const originalAmountUSDHr = numberFormat.format(originalAmountUSD);
+  const currentAmountUSDHr = numberFormat.format(Math.round(currentAmountUSD));
+
+  const line = `Если бы ты ${dateRelativeHr} \\(${dateAbsoluteHr}\\) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* \\(около ${originalBTCAmountHr} BTC\\).`;
+	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];
+	return (line + ' ' + desperation).replaceAll('.', '\\.');
+}
+
+async function sendBitcoinPrice(msg) {
+	const rate = await bitcoinPriceHelper.getRate();
+	if (!rate) {
+		console.log("CANNOT GET RATE");
+		return;
+	}
+
+	const usdHr = roundCurrencyFormatter.format(rate);
+
+	bot.sendMessage(msg.chat.id, `Биточек сейчас стоит примерно *$${usdHr}*`, {
+		reply_to_message_id: msg.message_id,
+		parse_mode: 'MarkdownV2'
+	});
+}
+
+async function sendBitcoinRoulette(msg) {
+	const days = await bitcoinPriceHelper.getDailyRate();
+	if (!days) {
+		console.error("CANNOT GET DAYS");
+		return;
+	}
+
+	const rate = await bitcoinPriceHelper.getRate();
+
+	const message = generateRouletteMessage(rate, days);
+
+	bot.sendMessage(msg.chat.id, message, {
+		reply_to_message_id: msg.message_id,
+		parse_mode: 'MarkdownV2'
+	});
 }
 
 /**********************************/
@@ -387,14 +507,26 @@ bot.on('message', msg => {
 		return;
 	}
 
-	if (WATCH_URLS) {
-		possiblyHandleUrl(msg);
-	}
-
 	touch({
 		chatId,
 		memberId: fromId
 	});
+
+	const text = (msg.text || '').trim();
+
+	if (isBitcoinPriceCommand(text)) {
+		sendBitcoinPrice(msg);
+		return;
+	}
+
+	if (isBitcoinRouletteCommand(text)) {
+		sendBitcoinRoulette(msg);
+		return;
+	}
+
+	if (WATCH_URLS) {
+		possiblyHandleUrl(msg);
+	}
 });
 
 bot.on('new_chat_members', async msg => {

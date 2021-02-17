@@ -454,7 +454,7 @@ function generateRouletteMessage(currentRate, days) {
 
   const line = `%NAME%, если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
 	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];
-	return (line + ' ' + desperation);
+	return (line + '\n\n' + desperation);
 }
 
 async function sendBitcoinPrice(msg) {

@@ -14,7 +14,7 @@ const BitcoinPriceHelper = require('./bitcoinPriceHelper');
 const dayjs = require('dayjs');
 require('dayjs/locale/ru');
 const relativeTime = require('dayjs/plugin/relativeTime');
-const LocalizedFormat = require('dayjs/plugin/LocalizedFormat');
+const LocalizedFormat = require('dayjs/plugin/localizedFormat');
 dayjs.locale('ru');
 dayjs.extend(relativeTime);
 dayjs.extend(LocalizedFormat);

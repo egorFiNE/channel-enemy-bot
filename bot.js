@@ -436,10 +436,6 @@ function getRandomBTCPriceDay(days) {
 }
 
 function generateRouletteMessage(currentRate, days) {
-  const numberFormat = new Intl.NumberFormat('en-US', {
-    useGrouping: true
-  });
-
   const randomDay = getRandomBTCPriceDay(days);
 
   const dateRelativeHr = dayjs(randomDay.date).from(new Date());
@@ -451,8 +447,8 @@ function generateRouletteMessage(currentRate, days) {
   const currentAmountUSD = amountBTC * currentRate;
 
   const originalBTCAmountHr = amountBTC.toFixed(4);
-  const originalAmountUSDHr = numberFormat.format(originalAmountUSD);
-  const currentAmountUSDHr = numberFormat.format(Math.round(currentAmountUSD));
+  const originalAmountUSDHr = roundCurrencyFormatter.format(originalAmountUSD);
+  const currentAmountUSDHr = roundCurrencyFormatter.format(Math.round(currentAmountUSD));
 
   const line = `Если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
 	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];

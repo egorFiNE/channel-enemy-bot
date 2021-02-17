@@ -428,7 +428,9 @@ function isBitcoinPriceCommand(text) {
 }
 
 function isBitcoinRouletteCommand(text) {
-	return text.startsWith('/roulette') || (text.startsWith('/') && text.endsWith('_nazzi'));
+	return text.startsWith('/roulette') ||
+		text.startsWith('/pizda') ||
+		(text.startsWith('/') && text.endsWith('_nazzi'));
 }
 
 function getRandomBTCPriceDay(days) {
@@ -450,7 +452,7 @@ function generateRouletteMessage(currentRate, days) {
   const originalAmountUSDHr = roundCurrencyFormatter.format(originalAmountUSD);
   const currentAmountUSDHr = roundCurrencyFormatter.format(Math.round(currentAmountUSD));
 
-  const line = `Если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
+  const line = `%NAME%, если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
 	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];
 	return (line + ' ' + desperation);
 }
@@ -479,7 +481,14 @@ async function sendBitcoinRoulette(msg) {
 
 	const rate = await bitcoinPriceHelper.getRate();
 
-	const message = generateRouletteMessage(rate, days);
+	const template = generateRouletteMessage(rate, days);
+
+	const name = renderFullname(msg.from);
+
+	const message = template
+		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
+		.replaceAll('%MEMBER_ID%', msg.from.id)
+		.replaceAll('%MENTION%', name);
 
 	bot.sendMessage(msg.chat.id, message, {
 		reply_to_message_id: msg.message_id,

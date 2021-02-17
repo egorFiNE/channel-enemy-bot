@@ -454,9 +454,9 @@ function generateRouletteMessage(currentRate, days) {
   const originalAmountUSDHr = numberFormat.format(originalAmountUSD);
   const currentAmountUSDHr = numberFormat.format(Math.round(currentAmountUSD));
 
-  const line = `Если бы ты ${dateRelativeHr} \\(${dateAbsoluteHr}\\) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* \\(около ${originalBTCAmountHr} BTC\\).`;
+  const line = `Если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
 	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];
-	return (line + ' ' + desperation).replaceAll('.', '\\.');
+	return (line + ' ' + desperation);
 }
 
 async function sendBitcoinPrice(msg) {
@@ -470,7 +470,7 @@ async function sendBitcoinPrice(msg) {
 
 	bot.sendMessage(msg.chat.id, `Биточек сейчас стоит примерно *$${usdHr}*`, {
 		reply_to_message_id: msg.message_id,
-		parse_mode: 'MarkdownV2'
+		parse_mode: 'Markdown'
 	});
 }
 
@@ -487,7 +487,7 @@ async function sendBitcoinRoulette(msg) {
 
 	bot.sendMessage(msg.chat.id, message, {
 		reply_to_message_id: msg.message_id,
-		parse_mode: 'MarkdownV2'
+		parse_mode: 'Markdown'
 	});
 }
 

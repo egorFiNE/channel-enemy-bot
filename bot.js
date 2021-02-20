@@ -10,47 +10,13 @@ const DetectLanguage = require('detectlanguage');
 const { Sequelize, DataTypes, Model } = require('sequelize');
 const path = require('path');
 const BitcoinPriceHelper = require('./bitcoinPriceHelper');
-
-const dayjs = require('dayjs');
-require('dayjs/locale/ru');
-const relativeTime = require('dayjs/plugin/relativeTime');
-const LocalizedFormat = require('dayjs/plugin/localizedFormat');
-dayjs.locale('ru');
-dayjs.extend(relativeTime);
-dayjs.extend(LocalizedFormat);
+const BitcoinOffense = require('./bitcoinOffense');
 
 const bitcoinPriceHelper = new BitcoinPriceHelper();
 
 const roundCurrencyFormatter = new Intl.NumberFormat('en-US', {
   useGrouping: true
 });
-
-const DESPERATION = [
-	"Да не расстраивайся ты так!",
-	"Но ведь могло бы быть хуже, правда?",
-	"Но мог бы и потерять, так шо хз",
-	"Я бы от этой мысли пошел бы напился в хлам",
-	"Я бы на твоем месте сейчас расплакался",
-	"Я тоже в шоке",
-	"Просто мрак",
-	"Иди кусай локти",
-	"И вот так мимо проходят все возможности в жизни",
-	"Офигеть, да?",
-	"Эх, надо было слушать умных людей",
-	"А ведь еще Уоренн Бафет тебе говорил",
-	"Если бы ты только вложил...",
-	"Что ты сейчас чувствуешь?",
-	"Как дальше жить?",
-	"А теперь прикинь, если бы ты купил биткоин вместо своего Mini",
-	"Да сколько ж можно плакать о потерянных возможностях!",
-	"Рыдай",
-	"А вот один мой друг откупился по три восемьсот",
-	"Прикинь?",
-	"Ужас!",
-	"Подумай об этом",
-	"Думай об этом сегодня... и завтра... и каждый день теперь"
-];
-
 
 const sequelize = new Sequelize({
 	logging: false,
@@ -94,7 +60,12 @@ const chatNameById = {
 	'-1001203773023': '@miniclubua',
 	'-1001337527238': '@miniclubodesa',
 	'-1001422187907': 'kiev',
-	'-1001257154538': '@BEETLE_CLUB_UKRAINE'
+	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
+	'-1001410584885': 'Флуд лампо алко чат'
+};
+
+const desperationsFilenameByChatId = {
+	'-1001410584885': 'obscene.txt'
 };
 
 const enableBansByChatId = {
@@ -418,7 +389,8 @@ function processPrivateMessage(msg) {
 	}
 
 	if (isBitcoinRouletteCommand(text)) {
-		sendBitcoinRoulette(msg);
+		const desperationsFilename = desperationsFilenameByChatId[chatId] || 'polite.txt';
+		BitcoinOffense.send(bot, msg, bitcoinPriceHelper, desperationsFilename);
 		return;
 	}
 }
@@ -433,30 +405,6 @@ function isBitcoinRouletteCommand(text) {
 		(text.startsWith('/') && text.endsWith('_nazzi'));
 }
 
-function getRandomBTCPriceDay(days) {
-  return days[Math.floor(Math.random() * days.length)];
-}
-
-function generateRouletteMessage(currentRate, days) {
-  const randomDay = getRandomBTCPriceDay(days);
-
-  const dateRelativeHr = dayjs(randomDay.date).from(new Date());
-  const dateAbsoluteHr = dayjs(randomDay.date).format('LL').replace(' г.', '');
-
-  const originalAmountUSD = (3 + Math.round(Math.random() * 30)) * 100;
-  const amountBTC = originalAmountUSD / randomDay.usd;
-
-  const currentAmountUSD = amountBTC * currentRate;
-
-  const originalBTCAmountHr = amountBTC.toFixed(4);
-  const originalAmountUSDHr = roundCurrencyFormatter.format(originalAmountUSD);
-  const currentAmountUSDHr = roundCurrencyFormatter.format(Math.round(currentAmountUSD));
-
-  const line = `%NAME%, если бы ты ${dateRelativeHr} (${dateAbsoluteHr}) вложил *$${originalAmountUSDHr}* в биткоин, то сегодня бы у тебя было *$${currentAmountUSDHr}* (около ${originalBTCAmountHr} BTC).`;
-	const desperation = DESPERATION[Math.floor(Math.random() * DESPERATION.length)];
-	return (line + '\n\n' + desperation);
-}
-
 async function sendBitcoinPrice(msg) {
 	const rate = await bitcoinPriceHelper.getRate();
 	if (!rate) {
@@ -467,30 +415,6 @@ async function sendBitcoinPrice(msg) {
 	const usdHr = roundCurrencyFormatter.format(rate);
 
 	bot.sendMessage(msg.chat.id, `Биточек сейчас стоит примерно *$${usdHr}*`, {
-		reply_to_message_id: msg.message_id,
-		parse_mode: 'Markdown'
-	});
-}
-
-async function sendBitcoinRoulette(msg) {
-	const days = await bitcoinPriceHelper.getDailyRate();
-	if (!days) {
-		console.error("CANNOT GET DAYS");
-		return;
-	}
-
-	const rate = await bitcoinPriceHelper.getRate();
-
-	const template = generateRouletteMessage(rate, days);
-
-	const name = renderFullname(msg.from);
-
-	const message = template
-		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
-		.replaceAll('%MEMBER_ID%', msg.from.id)
-		.replaceAll('%MENTION%', name);
-
-	bot.sendMessage(msg.chat.id, message, {
 		reply_to_message_id: msg.message_id,
 		parse_mode: 'Markdown'
 	});
@@ -525,7 +449,7 @@ bot.on('message', msg => {
 	}
 
 	if (isBitcoinRouletteCommand(text)) {
-		sendBitcoinRoulette(msg);
+		// sendBitcoinRoulette(msg);
 		return;
 	}
 

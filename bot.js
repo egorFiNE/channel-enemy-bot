@@ -449,7 +449,8 @@ bot.on('message', msg => {
 	}
 
 	if (isBitcoinRouletteCommand(text)) {
-		// sendBitcoinRoulette(msg);
+		const desperationsFilename = desperationsFilenameByChatId[chatId] || 'polite.txt';
+		BitcoinOffense.send(bot, msg, bitcoinPriceHelper, desperationsFilename);
 		return;
 	}
 

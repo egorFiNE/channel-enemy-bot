@@ -7,7 +7,7 @@
   "axios": "^0.21.1",
   "dayjs": "^1.10.4",
   "detectlanguage": "^1.2.2",
-  "node-telegram-bot-api": "^0.51.0",
+  "node-telegram-bot-api": "^0.52.0",
   "sequelize": "^6.4.0",
   "sqlite3": "^5.0.0",
   "tglib": "^3.0.5"

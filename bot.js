@@ -383,8 +383,12 @@ function processPrivateMessage(msg) {
 		return;
 	}
 
-	if (isBitcoinPriceCommand(text)) {
+	if (false && isBitcoinPriceCommand(text)) {
 		sendBitcoinPrice(msg);
+		return;
+	}
+
+	if (isNazziCommand(text)) {
 		return;
 	}
 
@@ -400,9 +404,11 @@ function isBitcoinPriceCommand(text) {
 }
 
 function isBitcoinRouletteCommand(text) {
-	return text.startsWith('/roulette') ||
-		text.startsWith('/pizda') ||
-		(text.startsWith('/') && text.endsWith('_nazzi'));
+	return text.startsWith('/roulette') || text.startsWith('/pizda');
+}
+
+function isNazziCommand(text) {
+	return text.startsWith('/') && text.endsWith('_nazzi');
 }
 
 async function sendBitcoinPrice(msg) {
@@ -443,8 +449,12 @@ bot.on('message', msg => {
 
 	const text = (msg.text || '').trim();
 
-	if (isBitcoinPriceCommand(text)) {
+	if (false && isBitcoinPriceCommand(text)) {
 		sendBitcoinPrice(msg);
+		return;
+	}
+
+	if (isNazziCommand(text)) {
 		return;
 	}
 

@@ -3,7 +3,6 @@
 // https://t.me/joinchat/ACtZWBdMm6xkL0mEVLgUCg
 
 const config = require('./config');
-
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const DetectLanguage = require('detectlanguage');
@@ -49,10 +48,7 @@ Stats.init({
 sequelize.sync();
 
 const bot = new TelegramBot(config.TELEGRAM_TOKEN, { polling: true });
-const detectLanguage = new DetectLanguage({
-	key: config.DETECTLANGUAGE_TOKEN,
-	ssl: false
-});
+const detectLanguage = new DetectLanguage(config.DETECTLANGUAGE_TOKEN);
 
 const WATCH_URLS = false;
 
@@ -142,32 +138,25 @@ function touch({ chatId, memberId }) {
 	);
 }
 
-function isAsian(name) {
-	return new Promise((resolve, reject) => {
-		detectLanguage.detect(name, (err, result) => {
-			if (err) {
-				reject(err);
-				return;
-			}
+async function isAsian(name) {
+	const result = await detectLanguage.detect(name);
 
-			if (!result || result.length == 0) {
-				reject(new Error("No idea"));
-				return;
-			}
+	if (!result || result.length == 0) {
+		reject(new Error("No idea"));
+		return;
+	}
 
-			const language = (result[0].language || '').toLowerCase();
-			if (!language) {
-				reject(new Error("no language"));
-				return;
-			}
+	const language = (result[0].language || '').toLowerCase();
+	if (!language) {
+		reject(new Error("no language"));
+		return;
+	}
 
-			resolve(
-				language.startsWith('zh') || language.startsWith('za') ||
-				language.startsWith('vi') || language.startsWith('ko') ||
-				language.startsWith('ja')
-			);
-		});
-	});
+	resolve(
+		language.startsWith('zh') || language.startsWith('za') ||
+		language.startsWith('vi') || language.startsWith('ko') ||
+		language.startsWith('ja')
+	);
 }
 
 async function banMembers(chatId, members) {
@@ -181,7 +170,7 @@ async function banMembers(chatId, members) {
 
 	for (const member of members) {
 		try {
-			await bot.kickChatMember(chatId, member.id);
+			await bot.banChatMember(chatId, member.id);
 		} catch (e) {
 			console.log(e);
 		}

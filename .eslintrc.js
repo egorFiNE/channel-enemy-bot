@@ -249,7 +249,7 @@ module.exports = {
         "semi": "error",
         "semi-spacing": ["error", {"before": false, "after": true}],
 				"no-unreachable": "error",
-        "sort-imports": "error",
+        "sort-imports": "off",
         "sort-keys": "off",
         "sort-vars": "off",
         "space-before-blocks": "off",

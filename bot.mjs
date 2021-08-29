@@ -2,14 +2,17 @@
 
 // https://t.me/joinchat/ACtZWBdMm6xkL0mEVLgUCg
 
-const config = require('./config');
-const fs = require('fs');
-const TelegramBot = require('node-telegram-bot-api');
-const DetectLanguage = require('detectlanguage');
-const { Sequelize, DataTypes, Model } = require('sequelize');
-const path = require('path');
-const BitcoinPriceHelper = require('./bitcoinPriceHelper');
-const BitcoinOffense = require('./bitcoinOffense');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import TelegramBot from 'node-telegram-bot-api';
+import DetectLanguage from 'detectlanguage';
+import Sequelize from 'sequelize';
+import BitcoinPriceHelper from './bitcoinPriceHelper.js';
+import BitcoinOffense from './bitcoinOffense.js';
+
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const bitcoinPriceHelper = new BitcoinPriceHelper();
 
@@ -23,20 +26,20 @@ const sequelize = new Sequelize({
   storage: path.join(__dirname, 'stats.sqlite3')
 });
 
-class Stats extends Model {}
+class Stats extends Sequelize.Model {}
 Stats.init({
 	chatId: {
-		type: DataTypes.STRING,
+		type: Sequelize.DataTypes.STRING,
 		allowNull: false,
 		primaryKey: true
 	},
 	memberId: {
-		type: DataTypes.STRING,
+		type: Sequelize.DataTypes.STRING,
 		allowNull: false,
 		primaryKey: true
 	},
 	lastSeen: {
-		type: DataTypes.DATE,
+		type: Sequelize.DataTypes.DATE,
 		allowNull: false
 	}
 }, {
@@ -47,8 +50,8 @@ Stats.init({
 
 sequelize.sync();
 
-const bot = new TelegramBot(config.TELEGRAM_TOKEN, { polling: true });
-const detectLanguage = new DetectLanguage(config.DETECTLANGUAGE_TOKEN);
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN);
 
 const WATCH_URLS = false;
 
@@ -142,21 +145,17 @@ async function isAsian(name) {
 	const result = await detectLanguage.detect(name);
 
 	if (!result || result.length == 0) {
-		reject(new Error("No idea"));
-		return;
+		throw Error("No idea");
 	}
 
 	const language = (result[0].language || '').toLowerCase();
 	if (!language) {
-		reject(new Error("no language"));
-		return;
+		throw Error("no language");
 	}
 
-	resolve(
-		language.startsWith('zh') || language.startsWith('za') ||
+	return language.startsWith('zh') || language.startsWith('za') ||
 		language.startsWith('vi') || language.startsWith('ko') ||
-		language.startsWith('ja')
-	);
+		language.startsWith('ja');
 }
 
 async function banMembers(chatId, members) {

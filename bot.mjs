@@ -104,7 +104,6 @@ const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
 	2840920, // kvazimbek
 	128480671, // Artem Svitelskyi
-	173231552, // Vova
 	91153540 // Dmytro Homonuik
 ];
 
@@ -469,12 +468,14 @@ bot.on('new_chat_members', async msg => {
 
 		const name = renderFullname(member);
 
-		try {
-			const shouldBan = await isAsian(name);
-			member.shouldBan = shouldBan;
-		} catch (e) {
-			console.log(e);
-			member._error = e.toString();
+		if (!name.match(/vova/i)) { // asian lang detects this as true
+			try {
+				const shouldBan = await isAsian(name);
+				member.shouldBan = shouldBan;
+			} catch (e) {
+				console.log(e);
+				member._error = e.toString();
+			}
 		}
 
 		if (WHITE_PEOPLE.includes(member.id)) {

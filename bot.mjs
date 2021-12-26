@@ -141,6 +141,10 @@ function touch({ chatId, memberId }) {
 }
 
 async function isAsian(name) {
+	if (name.match(/vova/i)) { // asian lang detects this as true
+		return false;
+	}
+
 	const result = await detectLanguage.detect(name);
 
 	if (!result || result.length == 0) {
@@ -468,14 +472,12 @@ bot.on('new_chat_members', async msg => {
 
 		const name = renderFullname(member);
 
-		if (!name.match(/vova/i)) { // asian lang detects this as true
-			try {
-				const shouldBan = await isAsian(name);
-				member.shouldBan = shouldBan;
-			} catch (e) {
-				console.log(e);
-				member._error = e.toString();
-			}
+		try {
+			const shouldBan = await isAsian(name);
+			member.shouldBan = shouldBan;
+		} catch (e) {
+			console.log(e);
+			member._error = e.toString();
 		}
 
 		if (WHITE_PEOPLE.includes(member.id)) {

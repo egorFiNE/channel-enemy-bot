@@ -77,7 +77,7 @@ const enableBansByChatId = {
 const adminsIdsByChatId = {
 	'-1001203773023': [ '2840920', '16292769', '128480671' ], // ua
 	'-1001337527238': [ '2840920' ], // odessa
-	'-1001367232670': [ '2840920' ] // lviv
+	'-1001367232670': [ '2840920', '445840984' ] // lviv
 };
 
 let templateByChatId = {};

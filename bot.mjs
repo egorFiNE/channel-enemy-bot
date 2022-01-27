@@ -69,15 +69,15 @@ const desperationsFilenameByChatId = {
 };
 
 const enableBansByChatId = {
-	'-1001337527238': true,
-	'-1001203773023': true,
-	'-1001367232670': true
+	'-1001337527238': true, // odessa
+	'-1001203773023': true, // ua
+	'-1001367232670': true // lviv
 };
 
 const adminsIdsByChatId = {
-	'-1001203773023': [ '2840920', '16292769', '128480671' ],
-	'-1001337527238': [ '2840920' ],
-	'-1001367232670': []
+	'-1001203773023': [ '2840920', '16292769', '128480671' ], // ua
+	'-1001337527238': [ '2840920' ], // odessa
+	'-1001367232670': [ '2840920' ] // lviv
 };
 
 let templateByChatId = {};
@@ -100,7 +100,8 @@ const NOT_WELCOME_MESSAGE = [
 	"Hi. I'm a private bot managing a count of specific Telegram channel.",
 	"There is nothing I can do for you, so goodbye and have a nice day :-)\n\n",
 	"Привет! Я частный бот, работающий только на парочке секретных телеграм каналов,",
-	"поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)\n\n"
+	"поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)\n\n",
+	"(Если ты админ, то ты знаешь, как мной пользоваться)\n"
 ].join(" ");
 
 const WHITE_PEOPLE = [
@@ -358,7 +359,8 @@ function processPrivateMessage(msg) {
 	const chatId = String(msg.chat.id);
 
 	if (text == '/start') {
-		bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+		const msg = NOT_WELCOME_MESSAGE + "\n\n" + fromId + "\n";
+		bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
 		return;
 	}
 

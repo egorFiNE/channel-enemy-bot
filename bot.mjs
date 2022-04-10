@@ -62,7 +62,7 @@ const chatNameById = {
 	'-1001422187907': 'kiev',
 	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
 	'-1001410584885': 'Флуд лампо алко чат',
-	'-1001637271384': 'MINI Club Chernivtsi'
+	'-1001637271384': '@miniclubchernivtsi'
 };
 
 const desperationsFilenameByChatId = {

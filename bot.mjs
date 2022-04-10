@@ -61,7 +61,8 @@ const chatNameById = {
 	'-1001367232670': '@miniclublviv',
 	'-1001422187907': 'kiev',
 	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
-	'-1001410584885': 'Флуд лампо алко чат'
+	'-1001410584885': 'Флуд лампо алко чат',
+	'-1001637271384': 'MINI Club Chernivtsi'
 };
 
 const desperationsFilenameByChatId = {
@@ -71,13 +72,15 @@ const desperationsFilenameByChatId = {
 const enableBansByChatId = {
 	'-1001337527238': true, // odessa
 	'-1001203773023': true, // ua
-	'-1001367232670': true // lviv
+	'-1001367232670': true, // lviv
+	'-1001637271384': true // chernivtsi
 };
 
 const adminsIdsByChatId = {
 	'-1001203773023': [ '2840920', '16292769', '128480671' ], // ua
 	'-1001337527238': [ '2840920' ], // odessa
-	'-1001367232670': [ '2840920', '445840984' ] // lviv
+	'-1001367232670': [ '2840920', '445840984' ], // lviv
+	'=1001637271384': [ '382743634' ]
 };
 
 let templateByChatId = {};

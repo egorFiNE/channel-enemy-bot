@@ -41,6 +41,9 @@ Stats.init({
 
 sequelize.sync();
 
+let banId = 1;
+const banListById = {};
+
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN);
 
@@ -322,18 +325,51 @@ function processSay({ text, fromId, chatId }) {
 	);
 }
 
-function processPrivateMessage(msg) {
+async function processBan(text) {
+	const id = text.replaceAll('/ban_', '');
+
+	const msg = banListById[id];
+
+	if (!msg) {
+		await bot.sendMessage(NOTIFY_CHAT_ID, "Not found");
+		return;
+	}
+
+	// await bot.banChatMember(msg.chat.id, msg.from.id);
+	// await bot.deleteMessage(msg.chat.id, msg.message_id);
+
+	await bot.sendMessage(NOTIFY_CHAT_ID, "Banned");
+
+	delete banListById[id];
+}
+
+function processClear(text) {
+	const id = text.replaceAll('/clear_', '');
+
+	const msg = banListById[id];
+
+	if (!msg) {
+		await bot.sendMessage(NOTIFY_CHAT_ID, "Not found");
+		return;
+	}
+
+	await bot.sendMessage(NOTIFY_CHAT_ID, "Cleared");
+
+	delete banListById[id];
+}
+
+async function processPrivateMessage(msg) {
 	const text = (msg.text || '').trim();
 	const fromId = String(msg.from.id);
 	const chatId = String(msg.chat.id);
 
 	if (text == '/start') {
-		bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+		await bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 		return;
 	}
 
 	if (text == '/ping') {
-		bot.sendMessage(chatId, "Pong!");
+		await bot.sendMessage(chatId, "Pong!");
 		return;
 	}
 
@@ -345,6 +381,18 @@ function processPrivateMessage(msg) {
 	if (text.startsWith('/say')) {
 		processSay({ text, fromId, chatId });
 		return;
+	}
+
+	if (msg.from.id == NOTIFY_CHAT_ID) {
+		if (text.startsWith('/ban_')) {
+			await processBan(text);
+			return;
+		}
+
+		if (text.startsWith('/clear_')) {
+			await processClear(text);
+			return;
+		}
 	}
 
 	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
@@ -381,12 +429,16 @@ async function handleUAMessage(msg) {
 		return;
 	}
 
+	banId++;
+
+	banListById[banId] = msg;
+
 	const notificationString = [
-		'Warning',
-		chatName,
-		`/ban 111`,
-		msg.from.id,
-		`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+		`Warning ${chatName}`,
+		`/ban_${banId}`,
+		`/clear_${banId}`,
+		`${renderFullname(msg.from)} tg://user?id=${msg.from.id}`,
+		'-'.repeat(10),
 		msg.text
 	].join('\n\n');
 

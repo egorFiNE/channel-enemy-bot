@@ -1,2 +1,3 @@
 # channel-enemy-bot
-protect one of the popular russian channels from asian spam bots
+
+Custom anti spam bot for a couple of european telegram channels.

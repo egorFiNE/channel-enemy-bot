@@ -238,20 +238,6 @@ function renderFullname({ first_name, last_name }) {
 	return name;
 }
 
-function possiblyHandleUrl(msg) {
-	const chatName = chatNameById[String(msg.chat.id)];
-
-	const notificationString = [
-		chatName,
-		`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
-		msg.text
-	].join(' ');
-
-	bot.sendMessage(NOTIFY_CHAT_ID, notificationString, { parse_mode: 'Markdown' });
-
-	return true;
-}
-
 function isAdmin(fromId, channelChatId) {
 	const admins = adminsIdsByChatId[channelChatId];
 	return admins ? admins.includes(String(fromId)) : false;
@@ -397,6 +383,7 @@ function handleUAMessage(msg) {
 	const notificationString = [
 		'Warning',
 		chatName,
+		`/ban 111`,
 		msg.from.id,
 		`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
 		msg.text

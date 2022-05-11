@@ -6,6 +6,7 @@ import path from 'path';
 import url from 'url';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
+import { resolveEntities, includesScamUrlInEntities, includesDiaInEntities } from './lib/AntiSpamEntities.mjs';
 import Sequelize from 'sequelize';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -43,8 +44,6 @@ sequelize.sync();
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN);
 
-const WATCH_URLS = false;
-
 const chatNameById = {
 	'-1001203773023': '@miniclubua',
 	'-1001337527238': '@miniclubodesa',
@@ -52,24 +51,34 @@ const chatNameById = {
 	'-1001422187907': 'kiev',
 	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
 	'-1001410584885': 'Флуд лампо алко чат',
-	'-1001637271384': '@miniclubchernivtsi'
-};
-
-const enableBansByChatId = {
-	'-1001337527238': true, // odessa
-	'-1001203773023': true, // ua
-	'-1001367232670': true, // lviv
-	'-1001637271384': true // chernivtsi
+	'-1001637271384': '@miniclubchernivtsi',
+	'-1001628102970': '@ua_in_de'
 };
 
 const adminsIdsByChatId = {
 	'-1001203773023': [ '2840920', '16292769', '128480671' ], // ua
 	'-1001337527238': [ '2840920' ], // odessa
 	'-1001367232670': [ '2840920', '445840984' ], // lviv
-	'-1001637271384': [ '382743634' ]
+	'-1001637271384': [ '382743634' ],
+	'-1001628102970': [ '2840920' ]
 };
 
-let templateByChatId = {};
+const isStatsEnabledByChatId = {
+	'-1001203773023': true,
+	'-1001337527238': true,
+	'-1001367232670': true,
+	'-1001422187907': true,
+	'-1001257154538': true,
+	'-1001410584885': true,
+	'-1001637271384': true,
+	'-1001628102970': false // explicitly false!!
+};
+
+const isUASpamFilterEnabledByChatId = {
+	'-1001628102970': true
+};
+
+let helloTemplateByChatId = {};
 
 const WELCOME_TIMEOUT_MS = 2000;
 
@@ -92,11 +101,9 @@ const NOT_WELCOME_MESSAGE =
 
 (Если ты админ, то ты знаешь, как мной пользоваться)`;
 
-const WHITE_PEOPLE = [
-	16292769, // Ira Magnuna
-	2840920, // kvazimbek
-	128480671, // Artem Svitelskyi
-	91153540 // Dmytro Homonuik
+// protect admins from being banned
+const WHITE_LIST = [
+	2840920 // kvazimbek
 ];
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
@@ -105,11 +112,11 @@ const HELLO_PATH = path.join(__dirname, 'hello.json');
 
 function loadHello() {
 	const helloString = fs.readFileSync(HELLO_PATH).toString();
-	templateByChatId = JSON.parse(helloString); // let it crash in case there's an error
+	helloTemplateByChatId = JSON.parse(helloString); // let it crash in case there's an error
 }
 
 function storeHello() {
-	fs.writeFileSync(HELLO_PATH, JSON.stringify(templateByChatId, null, "\t"));
+	fs.writeFileSync(HELLO_PATH, JSON.stringify(helloTemplateByChatId, null, "\t"));
 }
 
 function chatIdByName(name) {
@@ -132,20 +139,30 @@ function touch({ chatId, memberId }) {
 	);
 }
 
-async function isAsian(name) {
+async function isAsian(member) {
+	const name = renderFullname(member);
+
 	if (name.match(/vova/i)) { // asian lang detects this as true
 		return false;
 	}
 
-	const result = await detectLanguage.detect(name);
+	let result;
+	try {
+		result = await detectLanguage.detect(name);
+	} catch {
+		console.error("Language detect: error");
+		return false;
+	}
 
 	if (!result || result.length == 0) {
-		throw Error("No idea");
+		console.error("language detect: empty result");
+		return false;
 	}
 
 	const language = (result[0].language || '').toLowerCase();
 	if (!language) {
-		throw Error("no language");
+		console.error("language detect: not detected");
+		return false;
 	}
 
 	return language.startsWith('zh') || language.startsWith('za') ||
@@ -154,12 +171,7 @@ async function isAsian(name) {
 }
 
 async function banMembers(chatId, members) {
-	if (!enableBansByChatId[chatId]) {
-		return;
-	}
-
-	const date = Date.now();
-	const logStructure = JSON.stringify({ date, chatId, members });
+	const logStructure = JSON.stringify({ date: Date.now(), chatId, members });
 	fs.appendFileSync('banList.json', logStructure + "\n");
 
 	for (const member of members) {
@@ -186,41 +198,36 @@ async function banMembers(chatId, members) {
 	});
 }
 
-function renderWelcomeMessage({ template, memberId, mention }) {
-	return template
-		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
-		.replaceAll('%MEMBER_ID%', memberId)
-		.replaceAll('%MENTION%', mention);
-}
-
 function createWelcomeMessageByChatId({ chatId, member }) {
-	const template = templateByChatId[chatId];
+	const template = helloTemplateByChatId[chatId];
 	if (!template) {
 		return null;
 	}
 
 	const mention = renderFullname(member);
 
-	return renderWelcomeMessage({
-		template,
-		memberId: member.id,
-		mention
-	});
+	return template
+		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
+		.replaceAll('%MEMBER_ID%', member.id)
+		.replaceAll('%MENTION%', mention);
 }
 
 function welcomeMembers(chatId, members) {
-	const promises = [];
-	for (const member of members) {
-    const message = createWelcomeMessageByChatId({ chatId, member });
-		if (!message) {
-			console.log("No message to reply for chat %d", chatId);
-			continue;
-		}
-
-		promises.push(bot.sendMessage(chatId, message, { parse_mode: 'Markdown' }));
+	if (!helloTemplateByChatId[chatId]) {
+		return;
 	}
 
-	return Promise.all(promises);
+	// no need to await, fire-and-forget
+	Promise.all(
+		members.map(member => {
+			const message = createWelcomeMessageByChatId({ chatId, member });
+			if (!message) {
+				return null;
+			}
+
+			return bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+		})
+	);
 }
 
 function renderFullname({ first_name, last_name }) {
@@ -232,15 +239,6 @@ function renderFullname({ first_name, last_name }) {
 }
 
 function possiblyHandleUrl(msg) {
-	if (!msg.entities) {
-		return false;
-	}
-
-	const shouldNotify = msg.entities.filter(entity => entity.type == 'url').length > 0;
-	if (!shouldNotify) {
-		return false;
-	}
-
 	const chatName = chatNameById[String(msg.chat.id)];
 
 	const notificationString = [
@@ -254,13 +252,9 @@ function possiblyHandleUrl(msg) {
 	return true;
 }
 
-function authorizeAdmin(fromId, channelChatId) {
+function isAdmin(fromId, channelChatId) {
 	const admins = adminsIdsByChatId[channelChatId];
-	if (!admins) {
-		return false;
-	}
-
-	return admins.includes(String(fromId));
+	return admins ? admins.includes(String(fromId)) : false;
 }
 
 function processHelloConfigurations({ text, fromId, chatId }) {
@@ -283,13 +277,13 @@ function processHelloConfigurations({ text, fromId, chatId }) {
 		return;
 	}
 
-	if (!authorizeAdmin(fromId, channelChatId)) {
+	if (!isAdmin(fromId, channelChatId)) {
 		bot.sendMessage(chatId, "You don't have permission to change the hello message for that channel.", { parse_mode: 'Markdown' });
 		return;
 	}
 
 	if (s.length == 2) {
-		const template = templateByChatId[channelChatId];
+		const template = helloTemplateByChatId[channelChatId];
 		if (!template) {
 			bot.sendMessage(chatId, "No hello for that channel", { parse_mode: 'Markdown' });
 			return;
@@ -299,10 +293,10 @@ function processHelloConfigurations({ text, fromId, chatId }) {
 		return;
 	}
 
-	templateByChatId[channelChatId] = s.slice(2).join(' ');
+	helloTemplateByChatId[channelChatId] = s.slice(2).join(' ');
 	bot.sendMessage(
 		chatId,
-		`Сохранил вот такое приветствие для ${chatNameById[channelChatId]}:\n\n` + templateByChatId[channelChatId],
+		`Сохранил вот такое приветствие для ${chatNameById[channelChatId]}:\n\n` + helloTemplateByChatId[channelChatId],
 		{ parse_mode: 'Markdown' }
 	);
 
@@ -329,7 +323,7 @@ function processSay({ text, fromId, chatId }) {
 		return;
 	}
 
-	if (!authorizeAdmin(fromId, channelChatId)) {
+	if (!isAdmin(fromId, channelChatId)) {
 		bot.sendMessage(chatId, "You don't have permission to say in that channel.", { parse_mode: 'Markdown' });
 		return;
 	}
@@ -347,8 +341,12 @@ function processPrivateMessage(msg) {
 	const chatId = String(msg.chat.id);
 
 	if (text == '/start') {
-		const msg = NOT_WELCOME_MESSAGE + "\n\n" + fromId + "\n";
-		bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+		bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+		return;
+	}
+
+	if (text == '/ping') {
+		bot.sendMessage(chatId, "Pong!");
 		return;
 	}
 
@@ -362,10 +360,32 @@ function processPrivateMessage(msg) {
 		return;
 	}
 
-	if (text == '/ping') {
-		bot.sendMessage(chatId, "Pong!");
+	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+}
+
+function handleUAMessage(msg) {
+	if (!msg.entities) {
 		return;
 	}
+
+	resolveEntities(msg);
+
+	const shouldKillBecauseOfScamUrl = includesScamUrlInEntities(msg.entities);
+	const shouldKillBecauseOfDiaBot = includesDiaInEntities(msg.entities);
+
+	if (shouldKillBecauseOfDiaBot || shouldKillBecauseOfScamUrl) {
+		// await bot.banChatMember(msg.chat.id, msg.from.id);
+		// await bot.deleteMessage(msg.chat.id, msg.message_id);
+		await bot.sendMessage(NOTIFY_CHAT_ID, 'Banned:\n\n', msg.text, {
+			// disable_notification: true
+		});
+
+		return;
+	}
+
+	await bot.sendMessage(NOTIFY_CHAT_ID, 'Warning:\n\n', msg.text, {
+		disable_notification: true
+	});
 }
 
 /**********************************/
@@ -373,70 +393,60 @@ function processPrivateMessage(msg) {
 loadHello();
 
 bot.on('message', msg => {
-	fs.appendFileSync('msg.json', JSON.stringify(msg) + "\n");
-
-	const isPrivate = msg.chat?.type != 'supergroup';
-	const fromId = String(msg.from.id);
-	const chatId = String(msg.chat.id);
+	const isPrivate = msg.chat?.type !== 'supergroup';
 
 	if (isPrivate) {
 		processPrivateMessage(msg);
 		return;
 	}
 
-	touch({
-		chatId,
-		memberId: fromId
-	});
+	if (isStatsEnabledByChatId[msg.chat.id]) {
+		touch({
+			chatId: msg.chat.id,
+			memberId: String(msg.from.id)
+		});
+	}
 
-	const text = (msg.text || '').trim();
-
-	if (WATCH_URLS) {
-		possiblyHandleUrl(msg);
+	if (isUASpamFilterEnabledByChatId[msg.chat.id]) {
+		handleUAMessage(msg);
 	}
 });
 
 bot.on('new_chat_members', async msg => {
-	fs.appendFileSync('newMembers.json', JSON.stringify(msg) + "\n");
-
-	const toBeBanned = [], toWelcome = [];
+	const membersToWelcome = [], membersToBan = [];
 
 	for (const member of msg.new_chat_members) {
 		if (member.is_bot) {
 			continue;
 		}
 
-		const name = renderFullname(member);
-
-		try {
-			const shouldBan = await isAsian(name);
-			member.shouldBan = shouldBan;
-		} catch (e) {
-			console.log(e);
-			member._error = e.toString();
+		if (!WHITE_LIST.includes(member.id)) {
+			if (await isAsian(member)) {
+				membersToBan.push(member);
+				continue;
+			}
 		}
 
-		if (WHITE_PEOPLE.includes(member.id)) {
-			member.shouldBan = false;
-		}
-
-		if (member.shouldBan) {
-			toBeBanned.push(member);
-		} else {
-			toWelcome.push(member);
+		if (helloTemplateByChatId[msg.chat.id]) {
+			membersToWelcome.push(member);
 		}
 	}
 
-	if (toBeBanned.length > 0) {
-		await banMembers(msg.chat.id, toBeBanned);
-		if (toBeBanned.length == 1) {
-			bot.deleteMessage(msg.chat.id, msg.message_id);
+	if (membersToBan.length > 0) {
+		await banMembers(msg.chat.id, membersToBan);
+
+		if (membersToBan.length == 1) {
+			try {
+				bot.deleteMessage(msg.chat.id, msg.message_id);
+			} catch {
+				// we ignore an error here because multiple bots may compete for service messages deletion
+			}
 		}
 	}
 
-	if (toWelcome.length > 0) {
-		// let them see something
-		setTimeout(() => welcomeMembers(String(msg.chat.id), toWelcome), WELCOME_TIMEOUT_MS);
+	if (membersToWelcome.length > 0) {
+		// let them see something before we say hi
+		setTimeout(() => welcomeMembers(String(msg.chat.id), membersToWelcome), WELCOME_TIMEOUT_MS);
 	}
 });
 

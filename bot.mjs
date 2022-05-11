@@ -75,6 +75,7 @@ const isStatsEnabledByChatId = {
 };
 
 const isUASpamFilterEnabledByChatId = {
+	'-1001203773023': true,
 	'-1001628102970': true
 };
 

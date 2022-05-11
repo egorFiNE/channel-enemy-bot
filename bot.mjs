@@ -335,8 +335,8 @@ async function processBan(text) {
 		return;
 	}
 
-	// await bot.banChatMember(msg.chat.id, msg.from.id);
-	// await bot.deleteMessage(msg.chat.id, msg.message_id);
+	await bot.banChatMember(msg.chat.id, msg.from.id);
+	await bot.deleteMessage(msg.chat.id, msg.message_id);
 
 	await bot.sendMessage(NOTIFY_CHAT_ID, "Banned");
 

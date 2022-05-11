@@ -415,10 +415,10 @@ async function handleUAMessage(msg) {
 		// await bot.deleteMessage(msg.chat.id, msg.message_id);
 
 		const notificationString = [
-			'Banned',
+			`Banned ${chatName}`,
 			chatName,
-			msg.from.id,
-			`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+			`${renderFullname(msg.from)} tg://user?id=${msg.from.id}`,
+			'-'.repeat(10),
 			msg.text
 		].join('\n\n');
 

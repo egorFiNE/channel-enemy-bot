@@ -1,7 +1,5 @@
 /* eslint-disable camelcase */
 
-// https://t.me/joinchat/ACtZWBdMm6xkL0mEVLgUCg
-
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
@@ -9,16 +7,8 @@ import url from 'url';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
 import Sequelize from 'sequelize';
-import BitcoinPriceHelper from './bitcoinPriceHelper.js';
-import BitcoinOffense from './bitcoinOffense.js';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-
-const bitcoinPriceHelper = new BitcoinPriceHelper();
-
-const roundCurrencyFormatter = new Intl.NumberFormat('en-US', {
-  useGrouping: true
-});
 
 const sequelize = new Sequelize({
 	logging: false,
@@ -65,10 +55,6 @@ const chatNameById = {
 	'-1001637271384': '@miniclubchernivtsi'
 };
 
-const desperationsFilenameByChatId = {
-	'-1001410584885': 'obscene.txt'
-};
-
 const enableBansByChatId = {
 	'-1001337527238': true, // odessa
 	'-1001203773023': true, // ua
@@ -99,13 +85,12 @@ To change it:
 Make sure to put \`%NAME%\` somewhere in the hello message to mention the newcomer.
 `;
 
-const NOT_WELCOME_MESSAGE = [
-	"Hi. I'm a private bot managing a count of specific Telegram channel.",
-	"There is nothing I can do for you, so goodbye and have a nice day :-)\n\n",
-	"Привет! Я частный бот, работающий только на парочке секретных телеграм каналов,",
-	"поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)\n\n",
-	"(Если ты админ, то ты знаешь, как мной пользоваться)\n"
-].join(" ");
+const NOT_WELCOME_MESSAGE =
+`Hi. I'm a private bot managing a count of specific Telegram channel. There is nothing I can do for you, so goodbye and have a nice day :-)
+
+Привет! Я частный бот, работающий только на парочке секретных телеграм каналов, поэтому ничем не могу вам быть полезен. До свидания и хорошего дня! :-)
+
+(Если ты админ, то ты знаешь, как мной пользоваться)`;
 
 const WHITE_PEOPLE = [
 	16292769, // Ira Magnuna
@@ -381,48 +366,6 @@ function processPrivateMessage(msg) {
 		bot.sendMessage(chatId, "Pong!");
 		return;
 	}
-
-	if (false && isBitcoinPriceCommand(text)) {
-		sendBitcoinPrice(msg);
-		return;
-	}
-
-	if (isNazziCommand(text)) {
-		return;
-	}
-
-	if (isBitcoinRouletteCommand(text)) {
-		const desperationsFilename = desperationsFilenameByChatId[chatId] || 'polite.txt';
-		BitcoinOffense.send(bot, msg, bitcoinPriceHelper, desperationsFilename);
-		return;
-	}
-}
-
-function isBitcoinPriceCommand(text) {
-	return text.startsWith('/bitcoin') || text.startsWith('/btc');
-}
-
-function isBitcoinRouletteCommand(text) {
-	return text.startsWith('/roulette') || text.startsWith('/pizda');
-}
-
-function isNazziCommand(text) {
-	return text.startsWith('/') && text.endsWith('_nazzi');
-}
-
-async function sendBitcoinPrice(msg) {
-	const rate = await bitcoinPriceHelper.getRate();
-	if (!rate) {
-		console.log("CANNOT GET RATE");
-		return;
-	}
-
-	const usdHr = roundCurrencyFormatter.format(rate);
-
-	bot.sendMessage(msg.chat.id, `Биточек сейчас стоит примерно *$${usdHr}*`, {
-		reply_to_message_id: msg.message_id,
-		parse_mode: 'Markdown'
-	});
 }
 
 /**********************************/
@@ -447,21 +390,6 @@ bot.on('message', msg => {
 	});
 
 	const text = (msg.text || '').trim();
-
-	if (false && isBitcoinPriceCommand(text)) {
-		sendBitcoinPrice(msg);
-		return;
-	}
-
-	if (isNazziCommand(text)) {
-		return;
-	}
-
-	if (isBitcoinRouletteCommand(text)) {
-		const desperationsFilename = desperationsFilenameByChatId[chatId] || 'polite.txt';
-		BitcoinOffense.send(bot, msg, bitcoinPriceHelper, desperationsFilename);
-		return;
-	}
 
 	if (WATCH_URLS) {
 		possiblyHandleUrl(msg);

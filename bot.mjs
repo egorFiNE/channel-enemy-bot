@@ -370,21 +370,40 @@ function handleUAMessage(msg) {
 
 	resolveEntities(msg);
 
+	const chatName = chatNameById[String(msg.chat.id)];
+
 	const shouldKillBecauseOfScamUrl = includesScamUrlInEntities(msg.entities);
 	const shouldKillBecauseOfDiaBot = includesDiaInEntities(msg.entities);
 
 	if (shouldKillBecauseOfDiaBot || shouldKillBecauseOfScamUrl) {
 		// await bot.banChatMember(msg.chat.id, msg.from.id);
 		// await bot.deleteMessage(msg.chat.id, msg.message_id);
-		await bot.sendMessage(NOTIFY_CHAT_ID, 'Banned:\n\n', msg.text, {
+
+		const notificationString = [
+			'Banned',
+			chatName,
+			msg.from.id,
+			`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+			msg.text
+		].join('\n\n');
+
+		await bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
 			// disable_notification: true
 		});
 
 		return;
 	}
 
-	await bot.sendMessage(NOTIFY_CHAT_ID, 'Warning:\n\n', msg.text, {
-		disable_notification: true
+	const notificationString = [
+		'Warning',
+		chatName,
+		msg.from.id,
+		`[${renderFullname(msg.from)}](tg://user?id=${msg.from.id})`,
+		msg.text
+	].join('\n\n');
+
+	await bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
+		// disable_notification: true
 	});
 }
 

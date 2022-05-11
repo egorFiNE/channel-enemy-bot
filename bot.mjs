@@ -343,7 +343,7 @@ async function processBan(text) {
 	delete banListById[id];
 }
 
-function processClear(text) {
+async function processClear(text) {
 	const id = text.replaceAll('/clear_', '');
 
 	const msg = banListById[id];

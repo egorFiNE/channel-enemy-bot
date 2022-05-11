@@ -349,7 +349,7 @@ function processPrivateMessage(msg) {
 	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 }
 
-function handleUAMessage(msg) {
+async function handleUAMessage(msg) {
 	if (!msg.entities) {
 		return;
 	}

@@ -6,7 +6,6 @@ import path from 'path';
 import url from 'url';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
-import { resolveEntities, includesScamUrlInEntities, includesDiaInEntities } from './lib/AntiSpamEntities.mjs';
 import Sequelize from 'sequelize';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -41,9 +40,6 @@ Stats.init({
 
 sequelize.sync();
 
-let banId = 1;
-const banListById = {};
-
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN);
 
@@ -54,16 +50,14 @@ const chatNameById = {
 	'-1001422187907': 'kiev',
 	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
 	'-1001410584885': 'Флуд лампо алко чат',
-	'-1001637271384': '@miniclubchernivtsi',
-	'-1001628102970': '@ua_in_de'
+	'-1001637271384': '@miniclubchernivtsi'
 };
 
 const adminsIdsByChatId = {
 	'-1001203773023': [ '2840920', '16292769', '128480671' ], // ua
 	'-1001337527238': [ '2840920' ], // odessa
 	'-1001367232670': [ '2840920', '445840984' ], // lviv
-	'-1001637271384': [ '382743634' ],
-	'-1001628102970': [ '2840920' ]
+	'-1001637271384': [ '382743634' ]
 };
 
 const isStatsEnabledByChatId = {
@@ -73,13 +67,7 @@ const isStatsEnabledByChatId = {
 	'-1001422187907': true,
 	'-1001257154538': true,
 	'-1001410584885': true,
-	'-1001637271384': true,
-	'-1001628102970': false // explicitly false!!
-};
-
-const isUASpamFilterEnabledByChatId = {
-	'-1001203773023': true,
-	'-1001628102970': true
+	'-1001637271384': true
 };
 
 let helloTemplateByChatId = {};
@@ -325,39 +313,6 @@ function processSay({ text, fromId, chatId }) {
 	);
 }
 
-async function processBan(text) {
-	const id = text.replaceAll('/ban_', '');
-
-	const msg = banListById[id];
-
-	if (!msg) {
-		await bot.sendMessage(NOTIFY_CHAT_ID, "Not found");
-		return;
-	}
-
-	await bot.banChatMember(msg.chat.id, msg.from.id);
-	await bot.deleteMessage(msg.chat.id, msg.message_id);
-
-	await bot.sendMessage(NOTIFY_CHAT_ID, "Banned");
-
-	delete banListById[id];
-}
-
-async function processClear(text) {
-	const id = text.replaceAll('/clear_', '');
-
-	const msg = banListById[id];
-
-	if (!msg) {
-		await bot.sendMessage(NOTIFY_CHAT_ID, "Not found");
-		return;
-	}
-
-	await bot.sendMessage(NOTIFY_CHAT_ID, "Cleared");
-
-	delete banListById[id];
-}
-
 async function processPrivateMessage(msg) {
 	const text = (msg.text || '').trim();
 	const fromId = String(msg.from.id);
@@ -383,68 +338,7 @@ async function processPrivateMessage(msg) {
 		return;
 	}
 
-	if (msg.from.id == NOTIFY_CHAT_ID) {
-		if (text.startsWith('/ban_')) {
-			await processBan(text);
-			return;
-		}
-
-		if (text.startsWith('/clear_')) {
-			await processClear(text);
-			return;
-		}
-	}
-
 	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
-}
-
-async function handleUAMessage(msg) {
-	if (!msg.entities) {
-		return;
-	}
-
-	resolveEntities(msg);
-
-	const chatName = chatNameById[String(msg.chat.id)];
-
-	const shouldKillBecauseOfScamUrl = includesScamUrlInEntities(msg.entities);
-	const shouldKillBecauseOfDiaBot = includesDiaInEntities(msg.entities);
-
-	if (shouldKillBecauseOfDiaBot || shouldKillBecauseOfScamUrl) {
-		// await bot.banChatMember(msg.chat.id, msg.from.id);
-		// await bot.deleteMessage(msg.chat.id, msg.message_id);
-
-		const notificationString = [
-			`Banned ${chatName}`,
-			chatName,
-			`${renderFullname(msg.from)} tg://user?id=${msg.from.id}`,
-			'-'.repeat(10),
-			msg.text
-		].join('\n\n');
-
-		await bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
-			// disable_notification: true
-		});
-
-		return;
-	}
-
-	banId++;
-
-	banListById[banId] = msg;
-
-	const notificationString = [
-		`Warning ${chatName}`,
-		`/ban_${banId}`,
-		`/clear_${banId}`,
-		`${renderFullname(msg.from)} tg://user?id=${msg.from.id}`,
-		'-'.repeat(10),
-		msg.text
-	].join('\n\n');
-
-	await bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
-		// disable_notification: true
-	});
 }
 
 /**********************************/
@@ -464,10 +358,6 @@ bot.on('message', msg => {
 			chatId: msg.chat.id,
 			memberId: String(msg.from.id)
 		});
-	}
-
-	if (isUASpamFilterEnabledByChatId[msg.chat.id]) {
-		handleUAMessage(msg);
 	}
 });
 

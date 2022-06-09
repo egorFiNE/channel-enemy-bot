@@ -338,6 +338,11 @@ async function processPrivateMessage(msg) {
 		return;
 	}
 
+	if (text == '/id') {
+		await bot.sendMessage(chatId, fromId);
+		return;
+	}
+
 	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 }
 

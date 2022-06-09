@@ -368,6 +368,8 @@ bot.on('message', msg => {
 });
 
 bot.on('new_chat_members', async msg => {
+	fs.appendFileSync('newMembers.json', JSON.stringify(msg) + "\n");
+
 	const membersToWelcome = [], membersToBan = [];
 
 	for (const member of msg.new_chat_members) {

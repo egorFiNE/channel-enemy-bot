@@ -51,7 +51,8 @@ const chatNameById = {
 	'-1001257154538': '@BEETLE_CLUB_UKRAINE',
 	'-1001486470983': '@BEETLE_Market_UA',
 	'-1001410584885': 'Флуд лампо алко чат',
-	'-1001637271384': '@miniclubchernivtsi'
+	'-1001637271384': '@miniclubchernivtsi',
+	'-1001830190687': '@miniclub_cherkasy'
 };
 
 const adminsIdsByChatId = {
@@ -60,7 +61,8 @@ const adminsIdsByChatId = {
 	'-1001367232670': [ '2840920', '445840984' ], // lviv
 	'-1001637271384': [ '382743634' ],
 	'-1001257154538': [ '159021158' ],
-	'-1001486470983': [ '159021158', '2840920' ]
+	'-1001486470983': [ '159021158', '2840920' ],
+	'-1001830190687': [ '371821326', '5542614692' ] // mini черкассы
 };
 
 const isStatsEnabledByChatId = {
@@ -71,7 +73,8 @@ const isStatsEnabledByChatId = {
 	'-1001257154538': true,
 	'-1001410584885': true,
 	'-1001637271384': true,
-	'-1001486470983': true
+	'-1001486470983': true,
+	'-1001830190687': true
 };
 
 let helloTemplateByChatId = {};

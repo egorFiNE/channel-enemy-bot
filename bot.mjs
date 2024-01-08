@@ -384,10 +384,12 @@ bot.on('new_chat_members', async msg => {
 		}
 
 		if (!WHITE_LIST.includes(member.id)) {
+			/*
 			if (await isAsian(member)) {
 				membersToBan.push(member);
 				continue;
 			}
+			*/
 		}
 
 		if (helloTemplateByChatId[msg.chat.id]) {

@@ -1,12 +1,13 @@
 /* eslint-disable camelcase */
 
-import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
 import Sequelize from 'sequelize';
+
+process.loadEnvFile();
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 

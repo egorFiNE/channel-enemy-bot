@@ -170,9 +170,6 @@ async function isAsian(member) {
 }
 
 async function banMembers(chatId, members) {
-	const logStructure = JSON.stringify({ date: Date.now(), chatId, members });
-	fs.appendFileSync('banList.json', logStructure + "\n");
-
 	for (const member of members) {
 		try {
 			await bot.banChatMember(chatId, member.id);
@@ -374,8 +371,6 @@ bot.on('message', msg => {
 });
 
 bot.on('new_chat_members', async msg => {
-	fs.appendFileSync('newMembers.json', JSON.stringify(msg) + "\n");
-
 	const membersToWelcome = [], membersToBan = [];
 
 	for (const member of msg.new_chat_members) {

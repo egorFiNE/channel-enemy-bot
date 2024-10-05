@@ -1,23 +1,27 @@
-/* eslint-disable camelcase */
-
-import fs from 'fs';
-import path from 'path';
-import url from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
 import Sequelize from 'sequelize';
 
 process.loadEnvFile();
 
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-
 const sequelize = new Sequelize({
 	logging: false,
   dialect: 'sqlite',
-  storage: path.join(__dirname, 'stats.sqlite3')
+  storage: path.join(import.meta.dirname, 'stats.sqlite3')
 });
 
-class Stats extends Sequelize.Model {}
+class Stats extends Sequelize.Model {
+	static async touch({ chatId, memberId }) {
+		return await this.upsert({
+			chatId,
+			memberId,
+			lastSeen: new Date()
+		});
+	}
+}
+
 Stats.init({
 	chatId: {
 		type: Sequelize.DataTypes.STRING,
@@ -108,11 +112,10 @@ const WHITE_LIST = [
 
 const NOTIFY_CHAT_ID = 2840920; // kvazimbek
 
-const HELLO_PATH = path.join(__dirname, 'hello.json');
+const HELLO_PATH = path.join(import.meta.dirname, 'hello.json');
 
 function loadHello() {
-	const helloString = fs.readFileSync(HELLO_PATH).toString();
-	helloTemplateByChatId = JSON.parse(helloString); // let it crash in case there's an error
+	helloTemplateByChatId = JSON.parse(fs.readFileSync(HELLO_PATH, 'utf-8')); // let it crash in case there's an error
 }
 
 function storeHello() {
@@ -127,16 +130,6 @@ function chatIdByName(name) {
 	}
 
 	return null;
-}
-
-function touch({ chatId, memberId }) {
-	return sequelize.models.Stats.upsert(
-		{
-			chatId,
-			memberId,
-			lastSeen: new Date()
-		}
-	);
 }
 
 async function isAsian(member) {
@@ -364,7 +357,7 @@ bot.on('message', msg => {
 	}
 
 	if (isStatsEnabledByChatId[msg.chat.id]) {
-		touch({
+		Stats.touch({
 			chatId: msg.chat.id,
 			memberId: String(msg.from.id)
 		});

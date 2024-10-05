@@ -9,5 +9,8 @@
   "node-telegram-bot-api": "^0.66.0",
   "sequelize": "^6.37.3",
   "sqlite3": "^5.0.0"
+ },
+ "devDependencies": {
+  "@types/node-telegram-bot-api": "^0.64.7"
  }
 }

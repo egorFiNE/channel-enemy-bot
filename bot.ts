@@ -2,9 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
-import Sequelize from 'sequelize';
-
-process.loadEnvFile();
+import { Sequelize, Model, DataTypes } from 'sequelize';
 
 const sequelize = new Sequelize({
 	logging: false,
@@ -12,8 +10,8 @@ const sequelize = new Sequelize({
   storage: path.join(import.meta.dirname, 'stats.sqlite3')
 });
 
-class Stats extends Sequelize.Model {
-	static async touch({ chatId, memberId }) {
+class Stats extends Model {
+	static async touch(chatId: string, memberId: string) {
 		return await this.upsert({
 			chatId,
 			memberId,
@@ -24,17 +22,17 @@ class Stats extends Sequelize.Model {
 
 Stats.init({
 	chatId: {
-		type: Sequelize.DataTypes.STRING,
+		type: DataTypes.STRING,
 		allowNull: false,
 		primaryKey: true
 	},
 	memberId: {
-		type: Sequelize.DataTypes.STRING,
+		type: DataTypes.STRING,
 		allowNull: false,
 		primaryKey: true
 	},
 	lastSeen: {
-		type: Sequelize.DataTypes.DATE,
+		type: DataTypes.DATE,
 		allowNull: false
 	}
 }, {
@@ -45,10 +43,10 @@ Stats.init({
 
 sequelize.sync();
 
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
-const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN);
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, { polling: true });
+const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN!);
 
-const chatNameById = {
+const chatNameById: Record<string, string> = {
 	'-1001203773023': '@miniclubua',
 	'-1001337527238': '@miniclubodesa',
 	'-1001367232670': '@miniclublviv',
@@ -60,7 +58,7 @@ const chatNameById = {
 	'-1001830190687': '@miniclub_cherkasy'
 };
 
-const adminsIdsByChatId = {
+const adminsIdsByChatId: Record<string, string[]> = {
 	'-1001203773023': [ '2840920', '16292769', '128480671', '131315930' ], // ua
 	'-1001337527238': [ '2840920' ], // odessa
 	'-1001367232670': [ '2840920', '445840984' ], // lviv
@@ -70,7 +68,7 @@ const adminsIdsByChatId = {
 	'-1001830190687': [ '371821326', '5542614692' ] // mini черкассы
 };
 
-const isStatsEnabledByChatId = {
+const isStatsEnabledByChatId: Record<string, boolean> = {
 	'-1001203773023': true,
 	'-1001337527238': true,
 	'-1001367232670': true,
@@ -82,7 +80,7 @@ const isStatsEnabledByChatId = {
 	'-1001830190687': true
 };
 
-let helloTemplateByChatId = {};
+let helloTemplateByChatId: Record<string, string> = {};
 
 const WELCOME_TIMEOUT_MS = 2000;
 
@@ -122,7 +120,7 @@ function storeHello() {
 	fs.writeFileSync(HELLO_PATH, JSON.stringify(helloTemplateByChatId, null, "\t"));
 }
 
-function chatIdByName(name) {
+function chatIdByName(name: string) {
 	for (const [ chatId, chatName ] of Object.entries(chatNameById)) {
 		if (chatName.toLowerCase() == name.toLowerCase()) {
 			return chatId;
@@ -132,7 +130,7 @@ function chatIdByName(name) {
 	return null;
 }
 
-async function isAsian(member) {
+async function isAsian(member: TelegramBot.User): Promise<boolean> {
 	const name = renderFullname(member);
 
 	if (name.match(/vova/i)) { // asian lang detects this as true
@@ -163,7 +161,7 @@ async function isAsian(member) {
 		language.startsWith('ja');
 }
 
-async function banMembers(chatId, members) {
+async function banMembers(chatId: string, members: TelegramBot.User[]) {
 	for (const member of members) {
 		try {
 			await bot.banChatMember(chatId, member.id);
@@ -173,7 +171,7 @@ async function banMembers(chatId, members) {
 	}
 
 	const notificationMembers = members.map(member => {
-		const result = [ member.id ];
+		const result: string[] = [ String(member.id) ];
 		if (member.username) {
 			result.push('@' + member.username);
 		}
@@ -183,12 +181,12 @@ async function banMembers(chatId, members) {
 
 	const notificationString = notificationMembers.join("\n\n") + "\n";
 
-	bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
+	return await bot.sendMessage(NOTIFY_CHAT_ID, notificationString, {
 		disable_notification: true
 	});
 }
 
-function createWelcomeMessageByChatId({ chatId, member }) {
+function createWelcomeMessageByChatId(chatId: string, member: TelegramBot.User) {
 	const template = helloTemplateByChatId[chatId];
 	if (!template) {
 		return null;
@@ -198,19 +196,18 @@ function createWelcomeMessageByChatId({ chatId, member }) {
 
 	return template
 		.replaceAll('%NAME%', '[%MENTION%](tg://user?id=%MEMBER_ID%)')
-		.replaceAll('%MEMBER_ID%', member.id)
+		.replaceAll('%MEMBER_ID%', String(member.id))
 		.replaceAll('%MENTION%', mention);
 }
 
-function welcomeMembers(chatId, members) {
+async function welcomeMembers(chatId: string, members: TelegramBot.User[]) {
 	if (!helloTemplateByChatId[chatId]) {
 		return;
 	}
 
-	// no need to await, fire-and-forget
-	Promise.all(
+	await Promise.all(
 		members.map(member => {
-			const message = createWelcomeMessageByChatId({ chatId, member });
+			const message = createWelcomeMessageByChatId(chatId, member);
 			if (!message) {
 				return null;
 			}
@@ -220,7 +217,7 @@ function welcomeMembers(chatId, members) {
 	);
 }
 
-function renderFullname({ first_name, last_name }) {
+function renderFullname({ first_name, last_name }: TelegramBot.User) {
 	let name = (first_name || '').trim();
 	if (last_name) {
 		name += ' ' + last_name.trim();
@@ -228,20 +225,19 @@ function renderFullname({ first_name, last_name }) {
 	return name;
 }
 
-function isAdmin(fromId, channelChatId) {
+function isAdmin(fromId: string, channelChatId: string) {
 	const admins = adminsIdsByChatId[channelChatId];
 	return admins ? admins.includes(String(fromId)) : false;
 }
 
-function processHelloConfigurations({ text, fromId, chatId }) {
+async function processHelloConfigurations(text: string, fromId: string, chatId: string) {
 	const s = text.split(/\s+/);
 	if (s.length == 0) { // can't be, but still
-		return;
+		return null;
 	}
 
 	if (s.length == 1) {
-		bot.sendMessage(chatId, HELLO_HELP, { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, HELLO_HELP, { parse_mode: 'Markdown' });
 	}
 
 	// s.length > 1
@@ -249,45 +245,42 @@ function processHelloConfigurations({ text, fromId, chatId }) {
 	const channelName = s[1];
 	const channelChatId = chatIdByName(channelName);
 	if (!channelChatId) {
-		bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
 	}
 
 	if (!isAdmin(fromId, channelChatId)) {
-		bot.sendMessage(chatId, "You don't have permission to change the hello message for that channel.", { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, "You don't have permission to change the hello message for that channel.", { parse_mode: 'Markdown' });
 	}
 
 	if (s.length == 2) {
 		const template = helloTemplateByChatId[channelChatId];
 		if (!template) {
-			bot.sendMessage(chatId, "No hello for that channel", { parse_mode: 'Markdown' });
-			return;
+			return await bot.sendMessage(chatId, "No hello for that channel", { parse_mode: 'Markdown' });
 		}
 
-		bot.sendMessage(chatId, template, { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, template, { parse_mode: 'Markdown' });
 	}
 
 	helloTemplateByChatId[channelChatId] = s.slice(2).join(' ');
-	bot.sendMessage(
+	await bot.sendMessage(
 		chatId,
 		`Сохранил вот такое приветствие для ${chatNameById[channelChatId]}:\n\n` + helloTemplateByChatId[channelChatId],
 		{ parse_mode: 'Markdown' }
 	);
 
 	storeHello();
+
+	return null;
 }
 
-function processSay({ text, fromId, chatId }) {
+async function processSay(text: string, fromId: string, chatId: string) {
 	const s = text.split(/\s+/);
 	if (s.length == 0) { // can't be, but still
-		return;
+		return null;
 	}
 
 	if (s.length == 1) {
-		bot.sendMessage(chatId, "/say @channel text", { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, "/say @channel text", { parse_mode: 'Markdown' });
 	}
 
 	// s.length > 1
@@ -295,79 +288,70 @@ function processSay({ text, fromId, chatId }) {
 	const channelName = s[1];
 	const channelChatId = chatIdByName(channelName);
 	if (!channelChatId) {
-		bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, "I don't know that channel, sorry.", { parse_mode: 'Markdown' });
 	}
 
 	if (!isAdmin(fromId, channelChatId)) {
-		bot.sendMessage(chatId, "You don't have permission to say in that channel.", { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, "You don't have permission to say in that channel.", { parse_mode: 'Markdown' });
 	}
 
-	bot.sendMessage(
+	return await bot.sendMessage(
 		channelChatId,
 		s.slice(2).join(' '),
 		{ parse_mode: 'Markdown' }
 	);
 }
 
-async function processPrivateMessage(msg) {
+async function processPrivateMessage(msg: TelegramBot.Message) {
 	const text = (msg.text || '').trim();
-	const fromId = String(msg.from.id);
+	const fromId = String(msg.from?.id);
 	const chatId = String(msg.chat.id);
 
 	if (text == '/start') {
-		await bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
-		return;
+		return await bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 	}
 
 	if (text == '/ping') {
-		await bot.sendMessage(chatId, "Pong!");
-		return;
+		return await bot.sendMessage(chatId, "Pong!");
 	}
 
 	if (text.startsWith('/hello')) {
-		processHelloConfigurations({ text, fromId, chatId });
-		return;
+		return await processHelloConfigurations(text, fromId, chatId);
 	}
 
 	if (text.startsWith('/say')) {
-		processSay({ text, fromId, chatId });
-		return;
+		return await processSay(text, fromId, chatId);
 	}
 
 	if (text == '/id') {
-		await bot.sendMessage(chatId, fromId);
-		return;
+		return await bot.sendMessage(chatId, fromId);
 	}
 
-	bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
+	return await bot.sendMessage(chatId, NOT_WELCOME_MESSAGE, { parse_mode: 'Markdown' });
 }
 
 /**********************************/
 
 loadHello();
 
-bot.on('message', msg => {
+bot.on('message', async msg => {
 	const isPrivate = msg.chat?.type !== 'supergroup';
 
 	if (isPrivate) {
-		processPrivateMessage(msg);
+		await processPrivateMessage(msg);
 		return;
 	}
 
 	if (isStatsEnabledByChatId[msg.chat.id]) {
-		Stats.touch({
-			chatId: msg.chat.id,
-			memberId: String(msg.from.id)
-		});
+		await Stats.touch(String(msg.chat.id), String(msg.from?.id));
 	}
 });
 
 bot.on('new_chat_members', async msg => {
-	const membersToWelcome = [], membersToBan = [];
+	const membersToWelcome: TelegramBot.User[] = [];
+	const membersToBan: TelegramBot.User[] = [];
 
-	for (const member of msg.new_chat_members) {
+	for (const member of msg.new_chat_members!) {
 		if (member.is_bot) {
 			continue;
 		}
@@ -387,11 +371,11 @@ bot.on('new_chat_members', async msg => {
 	}
 
 	if (membersToBan.length > 0) {
-		await banMembers(msg.chat.id, membersToBan);
+		await banMembers(String(msg.chat.id), membersToBan);
 
 		if (membersToBan.length == 1) {
 			try {
-				bot.deleteMessage(msg.chat.id, msg.message_id);
+				await bot.deleteMessage(msg.chat.id, msg.message_id);
 			} catch {
 				// we ignore an error here because multiple bots may compete for service messages deletion
 			}

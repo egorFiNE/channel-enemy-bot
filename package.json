@@ -4,6 +4,9 @@
  "name": "enemy-bot",
  "version": "0.0.1",
  "license": "MIT",
+ "scripts": {
+	 "build": "bun build bot.ts --target=node --outfile=build.js"
+ },
  "dependencies": {
   "detectlanguage": "^2.1.0",
   "node-telegram-bot-api": "^0.66.0",

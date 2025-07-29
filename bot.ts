@@ -4,6 +4,10 @@ import TelegramBot from 'node-telegram-bot-api';
 import DetectLanguage from 'detectlanguage';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 
+if (process.loadEnvFile) {
+	process.loadEnvFile();
+}
+
 const sequelize = new Sequelize({
 	logging: false,
   dialect: 'sqlite',

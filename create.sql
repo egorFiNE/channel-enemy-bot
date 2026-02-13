@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS Stats  (
+  chatId VARCHAR(255) NOT NULL,
+  memberId VARCHAR(255) NOT NULL,
+  lastSeen DATETIME NOT NULL,
+  PRIMARY KEY (chatId, memberId)
+);

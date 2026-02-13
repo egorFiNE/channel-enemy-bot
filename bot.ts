@@ -1,54 +1,30 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import TelegramBot from 'node-telegram-bot-api';
-import DetectLanguage from 'detectlanguage';
-import { Sequelize, Model, DataTypes } from 'sequelize';
+import { Database } from 'bun:sqlite';
 
-if (process.loadEnvFile) {
-	process.loadEnvFile();
-}
+const db = new Database(path.join(import.meta.dirname, 'stats.sqlite3'), { create: true });
+db.run('PRAGMA journal_mode = WAL');
 
-const sequelize = new Sequelize({
-	logging: false,
-  dialect: 'sqlite',
-  storage: path.join(import.meta.dirname, 'stats.sqlite3')
-});
+const createDatabase = fs.readFileSync(path.join(import.meta.dirname, 'create.sql'), 'utf8');
+db.run(createDatabase);
 
-class Stats extends Model {
-	static async touch(chatId: string, memberId: string) {
-		return await this.upsert({
-			chatId,
-			memberId,
-			lastSeen: new Date()
-		});
+class Stats {
+	static touch(chatId: string, memberId: string) {
+		const query = db.query(`
+      INSERT INTO Stats (chatId, memberId, lastSeen) VALUES ($chatId, $memberId, DATETIME())
+      ON CONFLICT(chatId, memberId) DO UPDATE SET lastSeen = DATETIME()
+    `);
+
+    query.run({
+      $chatId: chatId,
+      $memberId: memberId
+    });
 	}
 }
 
-Stats.init({
-	chatId: {
-		type: DataTypes.STRING,
-		allowNull: false,
-		primaryKey: true
-	},
-	memberId: {
-		type: DataTypes.STRING,
-		allowNull: false,
-		primaryKey: true
-	},
-	lastSeen: {
-		type: DataTypes.DATE,
-		allowNull: false
-	}
-}, {
-	sequelize,
-	timestamps: false,
-	modelName: 'Stats'
-});
-
-sequelize.sync();
-
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, { polling: true });
-const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN!);
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+// const detectLanguage = new DetectLanguage(process.env.DETECTLANGUAGE_TOKEN!);
 
 const chatNameById: Record<string, string> = {
 	'-1001203773023': '@miniclubua',
@@ -134,6 +110,7 @@ function chatIdByName(name: string) {
 	return null;
 }
 
+/*
 async function isAsian(member: TelegramBot.User): Promise<boolean> {
 	const name = renderFullname(member);
 
@@ -164,6 +141,7 @@ async function isAsian(member: TelegramBot.User): Promise<boolean> {
 		language.startsWith('vi') || language.startsWith('ko') ||
 		language.startsWith('ja');
 }
+*/
 
 async function banMembers(chatId: string, members: TelegramBot.User[]) {
 	for (const member of members) {
@@ -208,6 +186,8 @@ async function welcomeMembers(chatId: string, members: TelegramBot.User[]) {
 	if (!helloTemplateByChatId[chatId]) {
 		return;
 	}
+
+	console.log(`Welcomed ${members.length} members in ${chatId}`);
 
 	await Promise.all(
 		members.map(member => {

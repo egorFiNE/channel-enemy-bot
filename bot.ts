@@ -3,7 +3,7 @@ import path from 'node:path';
 import TelegramBot from 'node-telegram-bot-api';
 import { Database } from 'bun:sqlite';
 
-const db = new Database(path.join(import.meta.dirname, 'stats.sqlite3'), { create: true });
+const db = new Database(path.join(import.meta.dirname, 'stats.db'), { create: true });
 db.run('PRAGMA journal_mode = WAL');
 
 const createDatabase = fs.readFileSync(path.join(import.meta.dirname, 'create.sql'), 'utf8');

@@ -37,7 +37,8 @@ const chatNameById: Record<string, string> = {
 	'-1001486470983': '@BEETLE_Market_UA',
 	'-1001410584885': 'Флуд лампо алко чат',
 	'-1001637271384': '@miniclubchernivtsi',
-	'-1001830190687': '@miniclub_cherkasy'
+  '-1001830190687': '@miniclub_cherkasy',
+	'xxx': 'xxx'
 };
 
 const adminsIdsByChatId: Record<string, string[]> = {
@@ -47,7 +48,8 @@ const adminsIdsByChatId: Record<string, string[]> = {
 	'-1001637271384': [ '382743634' ],
 	'-1001257154538': [ '159021158' ],
 	'-1001486470983': [ '159021158', '2840920' ],
-	'-1001830190687': [ '371821326', '5542614692' ] // mini черкассы
+  '-1001830190687': ['371821326', '5542614692'], // mini черкассы
+	'xxx' : [ '246088222' ] // svoyse channel
 };
 
 const isStatsEnabledByChatId: Record<string, boolean> = {
@@ -59,7 +61,8 @@ const isStatsEnabledByChatId: Record<string, boolean> = {
 	'-1001410584885': true,
 	'-1001637271384': true,
 	'-1001486470983': true,
-	'-1001830190687': true
+  '-1001830190687': true,
+	'xxx': true
 };
 
 let helloTemplateByChatId: Record<string, string> = {};
@@ -344,7 +347,7 @@ bot.on('my_chat_member', update => {
     ['left', 'kicked'].includes(oldStatus) &&
     ['member', 'administrator'].includes(newStatus)
   ) {
-    const line = `Bot added to chat: "${update.chat.title}", chatId=${update.chat.id}`;
+    const line = `Bot added to chat: "${update.chat.title}", chatId=${update.chat.id}, username=${update.chat.username}`;
     console.log(line);
     fs.appendFileSync(MEMBER_LOG_PATH, line + "\n");
     return;
@@ -354,7 +357,7 @@ bot.on('my_chat_member', update => {
     ['member', 'administrator'].includes(oldStatus) &&
     ['left', 'kicked'].includes(newStatus)
   ) {
-    const line = `Bot removed from chat: "${update.chat.title}", chatId=${update.chat.id}`;
+    const line = `Bot removed from chat: "${update.chat.title}", chatId=${update.chat.id}, username=${update.chat.username}`;
     console.log(line);
     fs.appendFileSync(MEMBER_LOG_PATH, line + "\n");
     return;

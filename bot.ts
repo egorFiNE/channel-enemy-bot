@@ -3,6 +3,8 @@ import path from 'node:path';
 import TelegramBot from 'node-telegram-bot-api';
 import { Database } from 'bun:sqlite';
 
+const MEMBER_LOG_PATH = path.join(import.meta.dirname, 'member.log');
+
 const db = new Database(path.join(import.meta.dirname, 'stats.db'), { create: true });
 db.run('PRAGMA journal_mode = WAL');
 
@@ -339,7 +341,9 @@ bot.on('my_chat_member', update => {
     ['left', 'kicked'].includes(oldStatus) &&
     ['member', 'administrator'].includes(newStatus)
   ) {
-    console.log('Bot added to chat:', update.chat.title);
+    const line = `Bot added to chat: "${update.chat.title}", chatId=${update.chat.id}`;
+    console.log(line);
+    fs.appendFileSync(MEMBER_LOG_PATH, line + "\n");
     return;
   }
 
@@ -347,7 +351,9 @@ bot.on('my_chat_member', update => {
     ['member', 'administrator'].includes(oldStatus) &&
     ['left', 'kicked'].includes(newStatus)
   ) {
-    console.log('Bot removed from chat:', update.chat.title);
+    const line = `Bot removed from chat: "${update.chat.title}", chatId=${update.chat.id}`;
+    console.log(line);
+    fs.appendFileSync(MEMBER_LOG_PATH, line + "\n");
     return;
   }
 

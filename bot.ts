@@ -331,6 +331,29 @@ bot.on('message', async msg => {
 	}
 });
 
+bot.on('my_chat_member', update => {
+  const oldStatus = update.old_chat_member.status;
+  const newStatus = update.new_chat_member.status;
+
+  if (
+    ['left', 'kicked'].includes(oldStatus) &&
+    ['member', 'administrator'].includes(newStatus)
+  ) {
+    console.log('Bot added to chat:', update.chat.title);
+    return;
+  }
+
+  if (
+    ['member', 'administrator'].includes(oldStatus) &&
+    ['left', 'kicked'].includes(newStatus)
+  ) {
+    console.log('Bot removed from chat:', update.chat.title);
+    return;
+  }
+
+  console.log('Chat member update:', update);
+});
+
 bot.on('new_chat_members', async msg => {
 	const membersToWelcome: TelegramBot.User[] = [];
 	const membersToBan: TelegramBot.User[] = [];

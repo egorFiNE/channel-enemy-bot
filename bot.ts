@@ -309,7 +309,10 @@ async function processPrivateMessage(msg: TelegramBot.Message) {
 		return await processSay(text, fromId, chatId);
 	}
 
-	if (text == '/id') {
+  if (text == '/id') {
+    const line = `userId=${fromId} asked (${msg.from?.first_name} ${msg.from?.last_name} ${msg.from?.username})`;
+    console.log(line);
+    fs.appendFileSync(MEMBER_LOG_PATH, line + "\n");
 		return await bot.sendMessage(chatId, fromId);
 	}
 

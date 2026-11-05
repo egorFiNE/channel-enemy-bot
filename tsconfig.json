@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "types": ["bun"],
+    "module": "NodeNext",
+    "target": "ESNext",
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "rewriteRelativeImportExtensions": true,
+
+    "rootDir": ".",
+
+    "outDir": "dist",
+
+    "paths": {
+      "#app/*": ["./src/*"]
+    },
+
+    "strict": true,
+    "allowJs": true,
+    "checkJs": true,
+    "maxNodeModuleJsDepth": 1,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false
+  },
+
+  "include": [ "." ],
+  "exclude": [ "node_modules" ]
+}

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import TelegramBot from 'node-telegram-bot-api';
+import { TelegramBot } from 'node-telegram-bot-api';
+import type { User, Message } from 'node-telegram-bot-api';
 import { Database } from 'bun:sqlite';
 
 const MEMBER_LOG_PATH = path.join(import.meta.dirname, 'member.log');
@@ -116,7 +117,7 @@ function chatIdByName(name: string) {
 }
 
 /*
-async function isAsian(member: TelegramBot.User): Promise<boolean> {
+async function isAsian(member: User): Promise<boolean> {
 	const name = renderFullname(member);
 
 	if (name.match(/vova/i)) { // asian lang detects this as true
@@ -148,7 +149,7 @@ async function isAsian(member: TelegramBot.User): Promise<boolean> {
 }
 */
 
-async function banMembers(chatId: string, members: TelegramBot.User[]) {
+async function banMembers(chatId: string, members: User[]) {
 	for (const member of members) {
 		try {
 			await bot.banChatMember(chatId, member.id);
@@ -173,7 +174,7 @@ async function banMembers(chatId: string, members: TelegramBot.User[]) {
 	});
 }
 
-function createWelcomeMessageByChatId(chatId: string, member: TelegramBot.User) {
+function createWelcomeMessageByChatId(chatId: string, member: User) {
 	const template = helloTemplateByChatId[chatId];
 	if (!template) {
 		return null;
@@ -187,7 +188,7 @@ function createWelcomeMessageByChatId(chatId: string, member: TelegramBot.User) 
 		.replaceAll('%MENTION%', mention);
 }
 
-async function welcomeMembers(chatId: string, members: TelegramBot.User[]) {
+async function welcomeMembers(chatId: string, members: User[]) {
 	if (!helloTemplateByChatId[chatId]) {
 		return;
 	}
@@ -206,7 +207,7 @@ async function welcomeMembers(chatId: string, members: TelegramBot.User[]) {
 	);
 }
 
-function renderFullname({ first_name, last_name }: TelegramBot.User) {
+function renderFullname({ first_name, last_name }: User) {
 	let name = (first_name || '').trim();
 	if (last_name) {
 		name += ' ' + last_name.trim();
@@ -291,7 +292,7 @@ async function processSay(text: string, fromId: string, chatId: string) {
 	);
 }
 
-async function processPrivateMessage(msg: TelegramBot.Message) {
+async function processPrivateMessage(msg: Message) {
 	const text = (msg.text || '').trim();
 	const fromId = String(msg.from?.id);
 	const chatId = String(msg.chat.id);
@@ -367,8 +368,8 @@ bot.on('my_chat_member', update => {
 });
 
 bot.on('new_chat_members', async msg => {
-	const membersToWelcome: TelegramBot.User[] = [];
-	const membersToBan: TelegramBot.User[] = [];
+	const membersToWelcome: User[] = [];
+	const membersToBan: User[] = [];
 
 	for (const member of msg.new_chat_members!) {
 		if (member.is_bot) {

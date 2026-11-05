@@ -1,0 +1,13 @@
+# docker compose up
+services:
+  main:
+    image: dehancer-dev:latest
+    hostname: main
+    container_name: main
+    stop_grace_period: 1s
+    user: user
+    tty: true
+    working_dir: /app/channel-enemy-bot
+    command: /usr/bin/sleep 864000
+    volumes:
+      - ..:/app/channel-enemy-bot

@@ -412,3 +412,6 @@ bot.on('polling_error', error => {
   console.log('polling_error');
   console.log(error);
 });
+
+const me = await bot.getMe();
+console.log(me);
